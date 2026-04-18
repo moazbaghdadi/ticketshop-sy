@@ -1,0 +1,39 @@
+.header {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+  color: #fff;
+  height: 56px;
+  padding: 0 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 8px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+}
+
+.back-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

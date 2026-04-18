@@ -1,0 +1,84 @@
+<app-header [title]="headerTitle()" />
+
+<div class="date-bar">
+  @for (date of dates(); track date.iso) {
+    <button
+      class="date-chip"
+      [class.active]="date.iso === selectedDate()"
+      (click)="selectDate(date.iso)"
+    >
+      <span class="day-name">{{ date.dayName }}</span>
+      <span class="day-num">{{ date.dayNum }}</span>
+    </button>
+  }
+</div>
+
+<div class="sort-bar">
+  <span class="sort-label">ترتيب حسب:</span>
+  <div class="sort-chips">
+    <button
+      class="sort-chip"
+      [class.active]="sortBy() === 'time'"
+      (click)="setSort('time')"
+    >
+      <span class="material-icons">schedule</span>
+      وقت الإقلاع
+    </button>
+    <button
+      class="sort-chip"
+      [class.active]="sortBy() === 'duration'"
+      (click)="setSort('duration')"
+    >
+      <span class="material-icons">timer</span>
+      مدة الرحلة
+    </button>
+    <button
+      class="sort-chip"
+      [class.active]="sortBy() === 'price'"
+      (click)="setSort('price')"
+    >
+      <span class="material-icons">payments</span>
+      السعر
+    </button>
+  </div>
+</div>
+
+<div class="trips-list">
+  @for (trip of trips(); track trip.id) {
+    <button class="trip-card" (click)="selectTrip(trip)">
+      <div class="trip-times">
+        <div class="time-block">
+          <span class="time">{{ trip.departureTime }}</span>
+          <span class="city-name">{{ trip.from.nameAr }}</span>
+        </div>
+        <div class="trip-line">
+          <span class="duration-text">{{ trip.duration }}</span>
+          <div class="line">
+            <span class="dot"></span>
+            <span class="dash"></span>
+            <span class="dot"></span>
+          </div>
+          <span class="stops-text">{{ formatStops(trip.stops) }}</span>
+        </div>
+        <div class="time-block">
+          <span class="time">{{ trip.arrivalTime }}</span>
+          <span class="city-name">{{ trip.to.nameAr }}</span>
+        </div>
+      </div>
+      <div class="trip-footer">
+        <div class="company">
+          <span class="material-icons">directions_bus</span>
+          <span>{{ trip.company }}</span>
+        </div>
+        <span class="price">{{ formatPrice(trip.price) }}</span>
+      </div>
+    </button>
+  }
+
+  @if (trips().length === 0) {
+    <div class="empty-state">
+      <span class="material-icons">search_off</span>
+      <p>لا توجد رحلات متاحة</p>
+    </div>
+  }
+</div>

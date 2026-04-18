@@ -1,0 +1,64 @@
+<div class="home-page">
+  <header class="home-header">
+    <span class="material-icons logo-icon">directions_bus</span>
+    <h1>باصات سوريا</h1>
+    <p>احجز تذكرتك بسهولة</p>
+  </header>
+
+  <div class="search-card">
+    <div class="field-group">
+      <button class="city-field" (click)="openCitySelector('from')">
+        <span class="material-icons field-icon">trip_origin</span>
+        <div class="field-content">
+          <span class="field-label">من</span>
+          <span class="field-value" [class.placeholder]="!booking.fromCity()">
+            {{ booking.fromCity()?.nameAr || 'اختر مدينة المغادرة' }}
+          </span>
+        </div>
+      </button>
+
+      <button class="swap-btn" (click)="swapCities()">
+        <span class="material-icons">swap_vert</span>
+      </button>
+
+      <button class="city-field" (click)="openCitySelector('to')">
+        <span class="material-icons field-icon to-icon">place</span>
+        <div class="field-content">
+          <span class="field-label">إلى</span>
+          <span class="field-value" [class.placeholder]="!booking.toCity()">
+            {{ booking.toCity()?.nameAr || 'اختر مدينة الوصول' }}
+          </span>
+        </div>
+      </button>
+    </div>
+
+    <div class="date-field">
+      <span class="material-icons field-icon">calendar_today</span>
+      <div class="field-content">
+        <span class="field-label">تاريخ السفر</span>
+        <input
+          type="date"
+          [ngModel]="booking.travelDate()"
+          (ngModelChange)="booking.travelDate.set($event)"
+          [min]="booking.travelDate()"
+        />
+      </div>
+    </div>
+
+    <button
+      class="search-btn"
+      (click)="search()"
+      [disabled]="!booking.fromCity() || !booking.toCity()"
+    >
+      <span class="material-icons">search</span>
+      بحث
+    </button>
+  </div>
+</div>
+
+@if (showCitySelector()) {
+  <app-city-selector
+    (citySelected)="onCitySelected($event)"
+    (closed)="showCitySelector.set(false)"
+  />
+}

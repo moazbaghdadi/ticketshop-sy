@@ -1,0 +1,29 @@
+<div class="overlay" (click)="close()"></div>
+<div class="modal">
+  <div class="modal-header">
+    <h2>اختر المدينة</h2>
+    <button class="close-btn" (click)="close()">
+      <span class="material-icons">close</span>
+    </button>
+  </div>
+  <div class="search-box">
+    <span class="material-icons search-icon">search</span>
+    <input
+      type="text"
+      placeholder="ابحث عن مدينة..."
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)"
+    />
+  </div>
+  <div class="city-list">
+    @for (city of filteredCities; track city.id) {
+      <button class="city-item" (click)="selectCity(city)">
+        <span class="material-icons">location_on</span>
+        <span>{{ city.nameAr }}</span>
+      </button>
+    }
+    @if (filteredCities.length === 0) {
+      <p class="no-results">لا توجد نتائج</p>
+    }
+  </div>
+</div>

@@ -1,0 +1,76 @@
+<app-header title="الدفع" />
+
+<div class="payment-page">
+  @if (trip(); as trip) {
+    <div class="summary-card">
+      <h3>ملخص الحجز</h3>
+      <div class="summary-row">
+        <span>المسار</span>
+        <span class="value">{{ trip.from.nameAr }} → {{ trip.to.nameAr }}</span>
+      </div>
+      <div class="summary-row">
+        <span>التاريخ</span>
+        <span class="value">{{ trip.date }}</span>
+      </div>
+      <div class="summary-row">
+        <span>وقت المغادرة</span>
+        <span class="value">{{ trip.departureTime }}</span>
+      </div>
+      <div class="summary-row">
+        <span>الشركة</span>
+        <span class="value">{{ trip.company }}</span>
+      </div>
+      <div class="summary-row">
+        <span>المقاعد</span>
+        <span class="value">{{ seatNumbers() }}</span>
+      </div>
+      <div class="summary-row total">
+        <span>المجموع</span>
+        <span class="value price">{{ formatPrice(totalPrice()) }}</span>
+      </div>
+    </div>
+
+    <div class="payment-methods">
+      <h3>طريقة الدفع</h3>
+
+      <button
+        class="method-card"
+        [class.active]="selectedMethod() === 'sham-cash'"
+        (click)="selectMethod('sham-cash')"
+      >
+        <div class="method-icon sham">ش</div>
+        <div class="method-info">
+          <span class="method-name">شام كاش</span>
+          <span class="method-desc">الدفع عبر محفظة شام كاش</span>
+        </div>
+        <span class="material-icons check">
+          {{ selectedMethod() === 'sham-cash' ? 'check_circle' : 'radio_button_unchecked' }}
+        </span>
+      </button>
+
+      <button
+        class="method-card"
+        [class.active]="selectedMethod() === 'syriatel-cash'"
+        (click)="selectMethod('syriatel-cash')"
+      >
+        <div class="method-icon syriatel">S</div>
+        <div class="method-info">
+          <span class="method-name">سيرياتيل كاش</span>
+          <span class="method-desc">الدفع عبر محفظة سيرياتيل</span>
+        </div>
+        <span class="material-icons check">
+          {{ selectedMethod() === 'syriatel-cash' ? 'check_circle' : 'radio_button_unchecked' }}
+        </span>
+      </button>
+    </div>
+  }
+
+  <button
+    class="pay-btn"
+    [disabled]="!selectedMethod()"
+    (click)="pay()"
+  >
+    <span class="material-icons">payment</span>
+    ادفع {{ formatPrice(totalPrice()) }}
+  </button>
+</div>

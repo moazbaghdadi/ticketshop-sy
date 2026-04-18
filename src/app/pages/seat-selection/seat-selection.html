@@ -1,0 +1,92 @@
+<app-header [title]="headerTitle()" />
+
+<div class="seat-page">
+  <div class="bus-container">
+    <div class="bus-front">
+      <span class="material-icons steering">radio_button_checked</span>
+      <span class="driver-label">السائق</span>
+    </div>
+
+    <div class="bus-grid">
+      @for (seat of seats(); track seat.id) {
+        <button
+          [class]="getSeatClass(seat)"
+          [style.grid-row]="seat.row + 1"
+          [style.grid-column]="getGridColumn(seat.col)"
+          [disabled]="seat.status === 'occupied' || getSeatClass(seat) === 'seat blocked'"
+          (click)="tapSeat(seat)"
+        >
+          {{ seat.id }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <span class="legend-dot available"></span>
+      <span>متاح</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot occupied-male"></span>
+      <span>ذكر</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot occupied-female"></span>
+      <span>أنثى</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot blocked"></span>
+      <span>ممنوع</span>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+
+  <!-- State 1: a seat is pending → show gender picker for that seat -->
+  @if (pendingSeat(); as seat) {
+    <div class="pending-hint">
+      <span class="material-icons">event_seat</span>
+      اختر جنس المسافر للمقعد رقم <strong>{{ seat.id }}</strong>
+    </div>
+    <div class="gender-btns">
+      <button
+        class="gender-btn male"
+        [disabled]="isGenderConflicting(seat, 'male')"
+        (click)="assignGender('male')"
+      >
+        <span class="material-icons">man</span>
+        ذكر
+      </button>
+      <button
+        class="gender-btn female"
+        [disabled]="isGenderConflicting(seat, 'female')"
+        (click)="assignGender('female')"
+      >
+        <span class="material-icons">woman</span>
+        أنثى
+      </button>
+    </div>
+
+  <!-- State 2: seats are selected, no pending → show summary + continue -->
+  } @else if (selectedCount() > 0) {
+    <div class="summary">
+      <div class="seats-info">
+        <span class="label">المقاعد:</span>
+        <span class="value">{{ selectedSeatNumbers() }}</span>
+      </div>
+      <div class="price-info">
+        <span class="label">المجموع:</span>
+        <span class="value price">{{ formatPrice(subtotal()) }}</span>
+      </div>
+    </div>
+    <button class="continue-btn" (click)="proceed()">متابعة</button>
+
+  <!-- State 3: nothing selected yet -->
+  } @else {
+    <span class="hint">اضغط على مقعد متاح للبدء</span>
+    <button class="continue-btn" disabled>متابعة</button>
+  }
+
+</div>

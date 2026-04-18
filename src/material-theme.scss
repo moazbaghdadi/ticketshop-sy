@@ -1,0 +1,24 @@
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$red-palette,
+        tertiary: mat.$green-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+body {
+  color-scheme: light;
+  background-color: #f6f7f8;
+  color: #5d686e;
+  font: var(--mat-sys-body-medium);
+  margin: 0;
+  height: 100%;
+}

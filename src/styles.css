@@ -1,1 +1,64 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  /* ── Brand Colors ── */
+  --color-primary: #4338CA;         /* indigo-700 – headers, active states */
+  --color-primary-dark: #312E81;    /* indigo-900 – gradient overlay */
+  --color-primary-light: #EEF2FF;   /* indigo-50  – subtle tints */
+  --color-accent: #D97706;          /* amber-600  – prices, CTAs */
+  --color-accent-light: #FFFBEB;    /* amber-50   */
+
+  /* ── Text ── */
+  --color-text: #6B7280;            /* gray-500 */
+  --color-text-dark: #111827;       /* gray-900 */
+
+  /* ── Surfaces ── */
+  --color-bg: #F5F6FA;
+  --color-white: #FFFFFF;
+  --color-border: #E5E7EB;          /* gray-200 */
+
+  /* ── Status ── */
+  --color-success: #059669;         /* emerald-600 – confirmation checkmark */
+
+  /* ── Seat Colors ── */
+  --color-seat-available: #4338CA;  /* matches primary */
+  --color-seat-occupied: #9CA3AF;   /* gray-400 */
+  --color-seat-male: #2563EB;       /* blue-600 */
+  --color-seat-female: #DB2777;     /* pink-600 */
+
+  /* ── Shape & Shadow ── */
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.07), 0 4px 14px rgba(0, 0, 0, 0.06);
+  --touch-min: 44px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  font-family: inherit;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}

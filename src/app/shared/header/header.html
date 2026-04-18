@@ -1,0 +1,8 @@
+<header class="header">
+  @if (showBack()) {
+    <button class="back-btn" (click)="goBack()">
+      <span class="material-icons">arrow_forward</span>
+    </button>
+  }
+  <h1 class="header-title">{{ title() }}</h1>
+</header>
