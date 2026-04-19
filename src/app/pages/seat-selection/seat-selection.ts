@@ -57,7 +57,7 @@ export class SeatSelectionPage implements OnInit {
   isGenderConflicting(seat: Seat, gender: SeatGender): boolean {
     const sideCols = seat.col < 2 ? [0, 1] : [2, 3];
     return this.seats().some(
-      s =>
+      (s) =>
         s.row === seat.row &&
         sideCols.includes(s.col) &&
         s.id !== seat.id &&
@@ -86,7 +86,7 @@ export class SeatSelectionPage implements OnInit {
 
     // Tapping an already-selected seat deselects it
     if (map[seat.id]) {
-      this.selectedSeatMap.update(m => {
+      this.selectedSeatMap.update((m) => {
         const next = { ...m };
         delete next[seat.id];
         return next;
@@ -109,7 +109,7 @@ export class SeatSelectionPage implements OnInit {
     if (!seat) return;
     if (this.isGenderConflicting(seat, gender)) return;
 
-    this.selectedSeatMap.update(m => ({ ...m, [seat.id]: gender }));
+    this.selectedSeatMap.update((m) => ({ ...m, [seat.id]: gender }));
     this.pendingSeat.set(null);
   }
 

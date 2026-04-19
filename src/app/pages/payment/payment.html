@@ -65,11 +65,7 @@
     </div>
   }
 
-  <button
-    class="pay-btn"
-    [disabled]="!selectedMethod()"
-    (click)="pay()"
-  >
+  <button class="pay-btn" [disabled]="!selectedMethod()" (click)="pay()">
     <span class="material-icons">payment</span>
     ادفع {{ formatPrice(totalPrice()) }}
   </button>

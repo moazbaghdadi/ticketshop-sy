@@ -1,28 +1,28 @@
 :root {
   /* ── Brand Colors ── */
-  --color-primary: #4338CA;         /* indigo-700 – headers, active states */
-  --color-primary-dark: #312E81;    /* indigo-900 – gradient overlay */
-  --color-primary-light: #EEF2FF;   /* indigo-50  – subtle tints */
-  --color-accent: #D97706;          /* amber-600  – prices, CTAs */
-  --color-accent-light: #FFFBEB;    /* amber-50   */
+  --color-primary: #4338ca; /* indigo-700 – headers, active states */
+  --color-primary-dark: #312e81; /* indigo-900 – gradient overlay */
+  --color-primary-light: #eef2ff; /* indigo-50  – subtle tints */
+  --color-accent: #d97706; /* amber-600  – prices, CTAs */
+  --color-accent-light: #fffbeb; /* amber-50   */
 
   /* ── Text ── */
-  --color-text: #6B7280;            /* gray-500 */
-  --color-text-dark: #111827;       /* gray-900 */
+  --color-text: #6b7280; /* gray-500 */
+  --color-text-dark: #111827; /* gray-900 */
 
   /* ── Surfaces ── */
-  --color-bg: #F5F6FA;
-  --color-white: #FFFFFF;
-  --color-border: #E5E7EB;          /* gray-200 */
+  --color-bg: #f5f6fa;
+  --color-white: #ffffff;
+  --color-border: #e5e7eb; /* gray-200 */
 
   /* ── Status ── */
-  --color-success: #059669;         /* emerald-600 – confirmation checkmark */
+  --color-success: #059669; /* emerald-600 – confirmation checkmark */
 
   /* ── Seat Colors ── */
-  --color-seat-available: #4338CA;  /* matches primary */
-  --color-seat-occupied: #9CA3AF;   /* gray-400 */
-  --color-seat-male: #2563EB;       /* blue-600 */
-  --color-seat-female: #DB2777;     /* pink-600 */
+  --color-seat-available: #4338ca; /* matches primary */
+  --color-seat-occupied: #9ca3af; /* gray-400 */
+  --color-seat-male: #2563eb; /* blue-600 */
+  --color-seat-female: #db2777; /* pink-600 */
 
   /* ── Shape & Shadow ── */
   --radius: 16px;

@@ -53,7 +53,10 @@
   border: 2px solid transparent;
   min-height: 44px;
   touch-action: manipulation;
-  transition: transform 0.1s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.1s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .seat:active:not(:disabled) {
@@ -69,31 +72,35 @@
 
 /* Tapped — awaiting gender */
 .seat.pending {
-  background: #FEF3C7;
-  border-color: #F59E0B;
-  color: #92400E;
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #92400e;
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
   animation: pulse-pending 1s ease-in-out infinite alternate;
 }
 
 @keyframes pulse-pending {
-  from { box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25); }
-  to   { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.10); }
+  from {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+  }
+  to {
+    box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.1);
+  }
 }
 
 /* Pre-occupied by male → faded blue */
 .seat.occupied-male {
-  background: #BFDBFE;
-  border-color: #93C5FD;
-  color: #1E40AF;
+  background: #bfdbfe;
+  border-color: #93c5fd;
+  color: #1e40af;
   cursor: not-allowed;
 }
 
 /* Pre-occupied by female → faded pink */
 .seat.occupied-female {
-  background: #FBCFE8;
-  border-color: #F9A8D4;
-  color: #9D174D;
+  background: #fbcfe8;
+  border-color: #f9a8d4;
+  color: #9d174d;
   cursor: not-allowed;
 }
 
@@ -113,9 +120,9 @@
 
 /* Blocked — both genders conflict */
 .seat.blocked {
-  background: #F3F4F6;
-  border-color: #D1D5DB;
-  color: #9CA3AF;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -150,18 +157,18 @@
 }
 
 .legend-dot.occupied-male {
-  background: #BFDBFE;
-  border: 2px solid #93C5FD;
+  background: #bfdbfe;
+  border: 2px solid #93c5fd;
 }
 
 .legend-dot.occupied-female {
-  background: #FBCFE8;
-  border: 2px solid #F9A8D4;
+  background: #fbcfe8;
+  border: 2px solid #f9a8d4;
 }
 
 .legend-dot.blocked {
-  background: #F3F4F6;
-  border: 2px solid #D1D5DB;
+  background: #f3f4f6;
+  border: 2px solid #d1d5db;
 }
 
 /* ── Bottom Bar ── */
@@ -192,7 +199,7 @@
 
 .pending-hint .material-icons {
   font-size: 18px;
-  color: #F59E0B;
+  color: #f59e0b;
 }
 
 .gender-btns {

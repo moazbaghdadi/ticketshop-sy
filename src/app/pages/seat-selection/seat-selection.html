@@ -43,7 +43,6 @@
 </div>
 
 <div class="bottom-bar">
-
   <!-- State 1: a seat is pending → show gender picker for that seat -->
   @if (pendingSeat(); as seat) {
     <div class="pending-hint">
@@ -69,7 +68,7 @@
       </button>
     </div>
 
-  <!-- State 2: seats are selected, no pending → show summary + continue -->
+    <!-- State 2: seats are selected, no pending → show summary + continue -->
   } @else if (selectedCount() > 0) {
     <div class="summary">
       <div class="seats-info">
@@ -83,10 +82,9 @@
     </div>
     <button class="continue-btn" (click)="proceed()">متابعة</button>
 
-  <!-- State 3: nothing selected yet -->
+    <!-- State 3: nothing selected yet -->
   } @else {
     <span class="hint">اضغط على مقعد متاح للبدء</span>
     <button class="continue-btn" disabled>متابعة</button>
   }
-
 </div>

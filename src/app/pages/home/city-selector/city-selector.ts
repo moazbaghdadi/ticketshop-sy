@@ -20,7 +20,7 @@ export class CitySelectorComponent {
   get filteredCities(): City[] {
     const query = this.searchQuery();
     if (!query) return this.cities;
-    return this.cities.filter(c => c.nameAr.includes(query));
+    return this.cities.filter((c) => c.nameAr.includes(query));
   }
 
   selectCity(city: City): void {

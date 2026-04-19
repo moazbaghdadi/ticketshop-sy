@@ -11,7 +11,7 @@ export class BookingService {
   readonly paymentMethod = signal<PaymentMethod | null>(null);
 
   readonly bookingRef = computed(
-    () => 'SY-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+    () => 'SY-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
   );
 
   readonly totalPrice = computed(() => {

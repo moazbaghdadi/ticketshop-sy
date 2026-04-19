@@ -3,12 +3,14 @@
 Arabic (RTL) mobile-first click-dummy for a Syrian regional bus ticket booking app. Built with Angular 21, standalone components, and Angular Material. No real backend — all data is hardcoded mock data.
 
 ## Tech Stack
+
 - Angular 21 (standalone components, signals API)
 - Angular Material (icons, fonts, theming)
 - Pure CSS styling (no Tailwind/Bootstrap)
 - RTL layout (`dir="rtl" lang="ar"`)
 
 ## Project Structure
+
 ```
 src/app/
   models/booking.model.ts          # City, Trip, Seat, SeatGender, PaymentMethod interfaces
@@ -26,6 +28,7 @@ src/app/
 ```
 
 ## Flow
+
 1. Home → select cities + date → Search
 2. Timetable → sort by departure time / duration / price → tap a trip
 3. Seat Selection → pick active gender (male/female) → tap seats → Continue
@@ -33,12 +36,14 @@ src/app/
 5. Confirmation → view ticket → Back to Home
 
 ## Running
+
 ```bash
 ng serve        # dev server on http://localhost:4200
 ng build        # production build to dist/
 ```
 
 ## Deployment (GitHub Pages)
+
 The app is deployed to GitHub Pages via `angular-cli-ghpages`:
 
 ```bash
@@ -48,6 +53,7 @@ ng deploy --base-href=/ticketshop-sy/
 Live URL: `https://<github-username>.github.io/ticketshop-sy/`
 
 ## Current State
+
 - All 5 pages implemented and working end-to-end
 - Full Arabic UI, RTL layout
 - Mobile-first responsive design (optimized for ~375px width)

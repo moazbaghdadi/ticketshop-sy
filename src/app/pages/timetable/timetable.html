@@ -16,11 +16,7 @@
 <div class="sort-bar">
   <span class="sort-label">ترتيب حسب:</span>
   <div class="sort-chips">
-    <button
-      class="sort-chip"
-      [class.active]="sortBy() === 'time'"
-      (click)="setSort('time')"
-    >
+    <button class="sort-chip" [class.active]="sortBy() === 'time'" (click)="setSort('time')">
       <span class="material-icons">schedule</span>
       وقت الإقلاع
     </button>
@@ -32,11 +28,7 @@
       <span class="material-icons">timer</span>
       مدة الرحلة
     </button>
-    <button
-      class="sort-chip"
-      [class.active]="sortBy() === 'price'"
-      (click)="setSort('price')"
-    >
+    <button class="sort-chip" [class.active]="sortBy() === 'price'" (click)="setSort('price')">
       <span class="material-icons">payments</span>
       السعر
     </button>
