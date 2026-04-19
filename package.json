@@ -1,36 +1,21 @@
 {
-  "name": "ticketshop-sy",
-  "version": "0.0.0",
-  "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "deploy": "ng deploy --base-href=/ticketshop-sy/",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
-  },
+  "name": "ticketshop-sy-monorepo",
+  "version": "1.0.0",
   "private": true,
-  "packageManager": "npm@10.9.4",
-  "dependencies": {
-    "@angular/cdk": "^21.2.7",
-    "@angular/common": "^21.2.0",
-    "@angular/compiler": "^21.2.0",
-    "@angular/core": "^21.2.0",
-    "@angular/forms": "^21.2.0",
-    "@angular/material": "^21.2.7",
-    "@angular/platform-browser": "^21.2.0",
-    "@angular/router": "^21.2.0",
-    "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+  "workspaces": [
+    "apps/*",
+    "libs/*",
+    "backend"
+  ],
+  "scripts": {
+    "start:app": "npm start -w apps/customer-app",
+    "build:app": "npm run build -w apps/customer-app",
+    "test:app": "npm test -w apps/customer-app",
+    "deploy:app": "npm run deploy -w apps/customer-app",
+    "start:backend": "npm start -w backend",
+    "build:backend": "npm run build -w backend"
   },
   "devDependencies": {
-    "@angular/build": "^21.2.7",
-    "@angular/cli": "^21.2.7",
-    "@angular/compiler-cli": "^21.2.0",
-    "angular-cli-ghpages": "^3.0.2",
-    "jsdom": "^28.0.0",
-    "prettier": "^3.8.1",
-    "typescript": "~5.9.2",
-    "vitest": "^4.0.8"
+    "prettier": "^3.8.1"
   }
 }

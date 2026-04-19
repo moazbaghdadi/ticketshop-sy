@@ -1,66 +1,65 @@
-# TicketShop Syria
+# TicketShop Syria (Monorepo)
 
-Arabic (RTL) mobile-first click-dummy for a Syrian regional bus ticket booking app. Built with Angular 21, standalone components, and Angular Material. No real backend — all data is hardcoded mock data.
-
-## Tech Stack
-
-- Angular 21 (standalone components, signals API)
-- Angular Material (icons, fonts, theming)
-- Pure CSS styling (no Tailwind/Bootstrap)
-- RTL layout (`dir="rtl" lang="ar"`)
+A monorepo containing the TicketShop Syria ecosystem, including the customer booking app, admin dashboard, shared libraries, and backend services.
 
 ## Project Structure
 
-```
-src/app/
-  models/booking.model.ts          # City, Trip, Seat, SeatGender, PaymentMethod interfaces
-  data/cities.data.ts              # 12 Syrian cities
-  data/trips.data.ts               # Mock trip generator + seeded seat generator (with gender)
-  services/booking.service.ts      # Signal-based shared state across pages
-  shared/header/                   # Reusable header with gradient + back button
-  pages/
-    home/                          # Search page (from/to cities, date)
-    home/city-selector/            # Full-screen city picker modal
-    timetable/                     # Trip results with date scroll, trip cards, sort bar
-    seat-selection/                # CSS Grid bus seat map (2+aisle+2) with gender coloring
-    payment/                       # Sham Cash / Syriatel Cash selection
-    confirmation/                  # Ticket display with booking ref + QR placeholder
+```text
+ticketshop-sy/
+├── apps/
+│   ├── customer-app/        # Angular 21 mobile-first click-dummy (Arabic/RTL)
+│   └── admin-dashboard/     # [Planned] Travel-companies dashboard
+├── libs/
+│   └── shared-models/       # Shared TypeScript interfaces (e.g., TravelRoute)
+├── backend/                 # Node.js/Express/TypeScript backend service
+└── package.json             # Root workspace management and helper scripts
 ```
 
-## Flow
+## Tech Stack
 
-1. Home → select cities + date → Search
-2. Timetable → sort by departure time / duration / price → tap a trip
-3. Seat Selection → pick active gender (male/female) → tap seats → Continue
-4. Payment → pick payment method → Pay
-5. Confirmation → view ticket → Back to Home
+### Customer App (apps/customer-app)
+- **Framework:** Angular 21 (standalone components, signals API)
+- **UI:** Angular Material, Pure CSS (no Tailwind/Bootstrap)
+- **Internationalization:** RTL layout (`dir="rtl" lang="ar"`)
+- **Features:** Mock trip generator, seat gender system, timetable sorting.
 
-## Running
+### Backend (backend)
+- **Runtime:** Node.js
+- **Framework:** NestJS (TypeScript, Strict Mode)
+- **Status:** Initial setup implemented with boilerplate.
+
+### Shared Library (libs/shared-models)
+- **Purpose:** Shared TypeScript types and interfaces between frontend and backend.
+
+## Common Commands
+
+All commands can be run from the project root using npm workspaces:
 
 ```bash
-ng serve        # dev server on http://localhost:4200
-ng build        # production build to dist/
+# Customer App
+npm run start:app     # Run customer app in dev mode
+npm run build:app     # Build customer app for production
+npm run deploy:app    # Deploy customer app to GitHub Pages
+
+# Backend
+npm run start:backend     # Run backend service
+npm run build:backend     # Build backend service
 ```
 
-## Deployment (GitHub Pages)
+## Flow (Customer App)
 
-The app is deployed to GitHub Pages via `angular-cli-ghpages`:
+1. **Home** → select cities + date → Search
+2. **Timetable** → sort by departure time / duration / price → tap a trip
+3. **Seat Selection** → pick active gender (male/female) → tap seats → Continue
+4. **Payment** → pick payment method → Pay
+5. **Confirmation** → view ticket → Back to Home
 
-```bash
-ng deploy --base-href=/ticketshop-sy/
-```
+## Deployment
 
-Live URL: `https://<github-username>.github.io/ticketshop-sy/`
+The customer app is configured for deployment to GitHub Pages.
+Run `npm run deploy:app` from the root to build and deploy.
 
-## Current State
+## Development Notes
 
-- All 5 pages implemented and working end-to-end
-- Full Arabic UI, RTL layout
-- Mobile-first responsive design (optimized for ~375px width)
-- Mock data: 12 cities, 5 bus companies (الأهلية، القدموس، الزنوبية، النورس، الأمانة)
-- Prices in SYP, seeded trip and seat generation per route/date
-- **Seat gender system**: occupied seats are pre-colored blue (male) / pink (female); user picks active gender before selecting seats; gender-proximity validation blocks conflicting bookings; same-session bookings exempt (family/group rule)
-- **Timetable sorting**: sort by departure time (default), trip duration, or price
-- **Color palette**: indigo (#4338CA) primary + amber (#D97706) accent; gradient headers
-- No tests written (click-dummy, not production code)
-- No authentication, no backend, no real payments
+- Use the monorepo structure to share types from `libs/shared-models`.
+- The customer app currently uses mock data, but is designed to be connected to the `backend` in future iterations.
