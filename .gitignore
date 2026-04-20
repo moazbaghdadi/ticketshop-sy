@@ -5,6 +5,12 @@ dist/
 tmp/
 out-tsc/
 bazel-out/
+*.tsbuildinfo
+
+# Shared library compiled output (resolved via npm workspaces at runtime)
+libs/shared-models/index.js
+libs/shared-models/index.js.map
+libs/shared-models/index.d.ts
 
 # Node
 node_modules/
