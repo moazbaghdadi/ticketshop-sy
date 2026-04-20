@@ -1,9 +1,9 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { Seat, SeatGender } from '@ticketshop-sy/shared-models';
+import { ApiService } from '../../services/api.service';
 import { BookingService } from '../../services/booking.service';
 import { HeaderComponent } from '../../shared/header/header';
-import { Seat, SeatGender } from '../../models/booking.model';
-import { generateSeats } from '../../data/trips.data';
 
 @Component({
   selector: 'app-seat-selection',
@@ -14,6 +14,7 @@ import { generateSeats } from '../../data/trips.data';
 })
 export class SeatSelectionPage implements OnInit {
   private router = inject(Router);
+  private api = inject(ApiService);
   booking = inject(BookingService);
 
   seats = signal<Seat[]>([]);
@@ -45,8 +46,10 @@ export class SeatSelectionPage implements OnInit {
 
   ngOnInit(): void {
     const trip = this.booking.selectedTrip();
-    const seed = trip ? trip.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 42;
-    this.seats.set(generateSeats(seed));
+    if (!trip) return;
+    this.api.getSeats(trip.id).subscribe({
+      next: seats => this.seats.set(seats),
+    });
   }
 
   /**
@@ -120,6 +123,7 @@ export class SeatSelectionPage implements OnInit {
   proceed(): void {
     const ids = Object.keys(this.selectedSeatMap()).map(Number);
     this.booking.selectedSeats.set(ids);
+    this.booking.selectedSeatMap.set(this.selectedSeatMap());
     this.router.navigate(['/payment']);
   }
 

@@ -1,5 +1,11 @@
 import { computed, Injectable, signal } from '@angular/core';
-import { City, PaymentMethod, Trip } from '../models/booking.model';
+import {
+  BookingResponse,
+  City,
+  PaymentMethod,
+  SeatGender,
+  Trip,
+} from '@ticketshop-sy/shared-models';
 
 @Injectable({ providedIn: 'root' })
 export class BookingService {
@@ -8,11 +14,11 @@ export class BookingService {
   readonly travelDate = signal<string>(new Date().toISOString().split('T')[0]);
   readonly selectedTrip = signal<Trip | null>(null);
   readonly selectedSeats = signal<number[]>([]);
+  readonly selectedSeatMap = signal<Record<number, SeatGender>>({});
   readonly paymentMethod = signal<PaymentMethod | null>(null);
+  readonly bookingResponse = signal<BookingResponse | null>(null);
 
-  readonly bookingRef = computed(
-    () => 'SY-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-  );
+  readonly bookingRef = computed(() => this.bookingResponse()?.reference ?? '');
 
   readonly totalPrice = computed(() => {
     const trip = this.selectedTrip();
@@ -33,6 +39,8 @@ export class BookingService {
     this.travelDate.set(new Date().toISOString().split('T')[0]);
     this.selectedTrip.set(null);
     this.selectedSeats.set([]);
+    this.selectedSeatMap.set({});
     this.paymentMethod.set(null);
+    this.bookingResponse.set(null);
   }
 }

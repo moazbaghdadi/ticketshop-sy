@@ -1,4 +1,4 @@
-import { City } from '../models/booking.model';
+import { City } from '@ticketshop-sy/shared-models';
 
 export const CITIES: City[] = [
   { id: 'damascus', nameAr: 'دمشق' },

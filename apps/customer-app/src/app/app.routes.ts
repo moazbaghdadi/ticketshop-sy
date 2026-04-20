@@ -19,7 +19,7 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/payment/payment').then((m) => m.PaymentPage),
   },
   {
-    path: 'confirmation',
+    path: 'confirmation/:reference',
     loadComponent: () =>
       import('./pages/confirmation/confirmation').then((m) => m.ConfirmationPage),
   },

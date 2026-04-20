@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { BookingService } from '../../services/booking.service';
 import { CitySelectorComponent } from './city-selector/city-selector';
-import { City } from '../../models/booking.model';
+import { City } from '@ticketshop-sy/shared-models';
 
 @Component({
   selector: 'app-home',

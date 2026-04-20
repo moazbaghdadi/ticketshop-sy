@@ -1,6 +1,6 @@
 import { Component, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { City } from '../../../models/booking.model';
+import { City } from '@ticketshop-sy/shared-models';
 import { CITIES } from '../../../data/cities.data';
 
 @Component({

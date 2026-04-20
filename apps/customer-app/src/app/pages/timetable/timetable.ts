@@ -1,9 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { Trip } from '@ticketshop-sy/shared-models';
+import { ApiService } from '../../services/api.service';
 import { BookingService } from '../../services/booking.service';
 import { HeaderComponent } from '../../shared/header/header';
-import { Trip } from '../../models/booking.model';
-import { generateTrips } from '../../data/trips.data';
 
 type SortMode = 'time' | 'price' | 'duration';
 
@@ -16,6 +16,7 @@ type SortMode = 'time' | 'price' | 'duration';
 })
 export class TimetablePage {
   private router = inject(Router);
+  private api = inject(ApiService);
   booking = inject(BookingService);
 
   headerTitle = computed(() => {
@@ -39,13 +40,8 @@ export class TimetablePage {
 
   selectedDate = signal(this.booking.travelDate());
   sortBy = signal<SortMode>('time');
-
-  private rawTrips = computed(() => {
-    const from = this.booking.fromCity();
-    const to = this.booking.toCity();
-    if (!from || !to) return [];
-    return generateTrips(from, to, this.selectedDate());
-  });
+  rawTrips = signal<Trip[]>([]);
+  loading = signal(false);
 
   trips = computed(() => {
     const list = [...this.rawTrips()];
@@ -58,6 +54,27 @@ export class TimetablePage {
         return list.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
     }
   });
+
+  constructor() {
+    effect(() => {
+      const from = this.booking.fromCity();
+      const to = this.booking.toCity();
+      const date = this.selectedDate();
+      if (!from || !to) return;
+
+      this.loading.set(true);
+      this.api.searchTrips(from.id, to.id, date).subscribe({
+        next: trips => {
+          this.rawTrips.set(trips);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.rawTrips.set([]);
+          this.loading.set(false);
+        },
+      });
+    });
+  }
 
   selectDate(iso: string): void {
     this.selectedDate.set(iso);

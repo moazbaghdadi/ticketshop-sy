@@ -65,8 +65,17 @@
     </div>
   }
 
-  <button class="pay-btn" [disabled]="!selectedMethod()" (click)="pay()">
-    <span class="material-icons">payment</span>
-    ادفع {{ formatPrice(totalPrice()) }}
+  @if (error(); as err) {
+    <div class="error-banner">{{ err }}</div>
+  }
+
+  <button class="pay-btn" [disabled]="!selectedMethod() || submitting()" (click)="pay()">
+    @if (submitting()) {
+      <span class="material-icons spinning">sync</span>
+      جارٍ الدفع...
+    } @else {
+      <span class="material-icons">payment</span>
+      ادفع {{ formatPrice(totalPrice()) }}
+    }
   </button>
 </div>

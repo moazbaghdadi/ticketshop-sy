@@ -67,7 +67,12 @@
     </button>
   }
 
-  @if (trips().length === 0) {
+  @if (loading()) {
+    <div class="empty-state">
+      <span class="material-icons">hourglass_empty</span>
+      <p>جارٍ البحث...</p>
+    </div>
+  } @else if (trips().length === 0) {
     <div class="empty-state">
       <span class="material-icons">search_off</span>
       <p>لا توجد رحلات متاحة</p>
