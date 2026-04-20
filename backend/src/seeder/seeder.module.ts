@@ -15,11 +15,7 @@ import { TripsSeederService } from './trips-seeder.service'
             inject: [ConfigService],
             useFactory: (config: ConfigService) => ({
                 type: 'postgres' as const,
-                host: config.get<string>('DB_HOST', 'localhost'),
-                port: config.get<number>('DB_PORT', 5432),
-                username: config.get<string>('DB_USERNAME', 'postgres'),
-                password: config.get<string>('DB_PASSWORD', 'postgres'),
-                database: config.get<string>('DB_DATABASE', 'postgres'),
+                url: config.get<string>('DATABASE_URL', 'postgres://postgres:postgres@localhost:5432/postgres'),
                 entities: [TripEntity, BookingEntity],
                 synchronize: true,
             }),
