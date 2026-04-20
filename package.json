@@ -13,7 +13,9 @@
     "test:app": "npm test -w apps/customer-app",
     "deploy:app": "npm run deploy -w apps/customer-app",
     "start:backend": "npm start -w backend",
-    "build:backend": "npm run build -w backend"
+    "build:backend": "npm run build -w backend",
+    "build": "npm run build:backend",
+    "start": "node backend/dist/main.js"
   },
   "devDependencies": {
     "prettier": "^3.8.1"
