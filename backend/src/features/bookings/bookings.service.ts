@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import {
+    BadRequestException,
+    ConflictException,
+    Injectable,
+    NotFoundException,
+    UnprocessableEntityException,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { BookingResponse, SeatGender } from '@ticketshop-sy/shared-models'
 import { randomBytes } from 'crypto'
@@ -28,14 +34,18 @@ export class BookingsService {
         }
 
         const sorted = sortStations(trip.stations ?? [])
-        if (sorted.length < 2) {
-            throw new UnprocessableEntityException(`Trip ${trip.id} has no valid route`)
+        const boarding = sorted.find(s => s.cityId === dto.boardingStationId)
+        const dropoff = sorted.find(s => s.cityId === dto.dropoffStationId)
+        if (!boarding || !dropoff) {
+            throw new BadRequestException('Boarding or dropoff station does not belong to this trip')
         }
-        const origin = sorted[0]!
-        const terminus = sorted[sorted.length - 1]!
-        const pairPrice = findSegmentPrice(trip, origin.cityId, terminus.cityId)
+        if (boarding.order >= dropoff.order) {
+            throw new BadRequestException('Boarding station must precede the dropoff station')
+        }
+
+        const pairPrice = findSegmentPrice(trip, boarding.cityId, dropoff.cityId)
         if (pairPrice === null) {
-            throw new UnprocessableEntityException(`Trip ${trip.id} has no price for ${origin.cityId} → ${terminus.cityId}`)
+            throw new UnprocessableEntityException(`Trip ${trip.id} has no price for ${boarding.cityId} → ${dropoff.cityId}`)
         }
 
         const existingBookings = await this.bookingRepository.find({ where: { tripId: dto.tripId } })
@@ -79,7 +89,7 @@ export class BookingsService {
             gender: sel.gender,
         }))
 
-        const tripDto = toTripForPair(trip, origin.cityId, terminus.cityId)
+        const tripDto = toTripForPair(trip, boarding.cityId, dropoff.cityId)
         const totalPrice = pairPrice * dto.seatSelections.length
 
         const booking = this.bookingRepository.create({
@@ -87,8 +97,8 @@ export class BookingsService {
             tripId: trip.id,
             tripSnapshot: {
                 id: trip.id,
-                fromCityId: origin.cityId,
-                toCityId: terminus.cityId,
+                fromCityId: boarding.cityId,
+                toCityId: dropoff.cityId,
                 company: { id: trip.company.id, nameAr: trip.company.nameAr },
                 departureTime: tripDto.departureTime,
                 arrivalTime: tripDto.arrivalTime,
@@ -109,6 +119,11 @@ export class BookingsService {
             paymentMethod: dto.paymentMethod,
             totalPrice,
             status: 'confirmed',
+            boardingStationId: boarding.cityId,
+            dropoffStationId: dropoff.cityId,
+            passengerName: dto.passenger.name,
+            passengerPhone: dto.passenger.phone,
+            passengerEmail: dto.passenger.email ?? null,
         })
 
         const saved = await this.bookingRepository.save(booking)
@@ -164,6 +179,13 @@ export class BookingsService {
             totalPrice: booking.totalPrice,
             status: booking.status,
             createdAt: booking.createdAt.toISOString(),
+            boardingStationId: booking.boardingStationId,
+            dropoffStationId: booking.dropoffStationId,
+            passenger: {
+                name: booking.passengerName,
+                phone: booking.passengerPhone,
+                email: booking.passengerEmail,
+            },
         }
     }
 

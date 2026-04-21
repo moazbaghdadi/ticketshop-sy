@@ -34,7 +34,8 @@ export class PaymentPage {
     const trip = this.booking.selectedTrip();
     const method = this.selectedMethod();
     const seatMap = this.booking.selectedSeatMap();
-    if (!trip || !method) return;
+    const passenger = this.booking.passenger();
+    if (!trip || !method || !passenger) return;
 
     const request: CreateBookingRequest = {
       tripId: trip.id,
@@ -43,6 +44,9 @@ export class PaymentPage {
         gender,
       })),
       paymentMethod: method,
+      boardingStationId: trip.from.id,
+      dropoffStationId: trip.to.id,
+      passenger,
     };
 
     this.submitting.set(true);

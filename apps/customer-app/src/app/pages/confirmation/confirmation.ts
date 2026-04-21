@@ -24,6 +24,7 @@ export class ConfirmationPage implements OnInit {
   seatNumbers = computed(() => this.response()?.seats.join('، ') ?? '');
   totalPrice = computed(() => this.response()?.totalPrice ?? 0);
   reference = computed(() => this.response()?.reference ?? '');
+  passenger = computed(() => this.response()?.passenger ?? null);
 
   paymentLabel = computed(() => {
     const method = this.response()?.paymentMethod;

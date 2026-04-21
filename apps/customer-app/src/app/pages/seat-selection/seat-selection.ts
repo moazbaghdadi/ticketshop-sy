@@ -126,7 +126,7 @@ export class SeatSelectionPage implements OnInit {
     const ids = Object.keys(this.selectedSeatMap()).map(Number);
     this.booking.selectedSeats.set(ids);
     this.booking.selectedSeatMap.set(this.selectedSeatMap());
-    this.router.navigate(['/payment']);
+    this.router.navigate(['/passenger-info']);
   }
 
   formatPrice(price: number): string {

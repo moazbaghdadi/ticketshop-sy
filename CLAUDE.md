@@ -30,6 +30,7 @@ ticketshop-sy/
 - **Feature modules:** `companies/`, `auth/`, `trips/`, `seats/`, `bookings/`.
 - **Auth:** JWT via `@nestjs/jwt` + `passport-jwt`. Users are created from invitations (CLI-only in v1). Endpoints: `POST /api/v1/auth/login`, `GET /api/v1/auth/invitations/:token`, `POST /api/v1/auth/invitations/:token/accept`, `GET /api/v1/auth/me`. Guard: `JwtAuthGuard`; decorator: `@CurrentUser()`.
 - **Trips model:** a `TripEntity` is just `{ id, companyId, date }`. Route shape lives in `trip_stations` (cityId, order, arrivalTime, departureTime) and pricing lives in `trip_segment_prices` (fromCityId, toCityId, price, unique per trip+pair). Every ordered pair of stations on a trip has its own price (pair-priced). `TripsService.searchTrips(from, to, date)` finds trips whose stations include both cities with from.order < to.order and resolves the pair price.
+- **Bookings model:** `BookingEntity` persists the boarding/dropoff station IDs (`boardingStationId`, `dropoffStationId`) + passenger fields (`passengerName`, `passengerPhone`, `passengerEmail` nullable). Total price = pair price for (boarding, dropoff) × seat count. `CreateBookingDto` validates nested `passenger: { name, phone, email? }` and rejects invalid boarding/dropoff combinations (not on trip, reversed order, or no segment price).
 - **Dashboard trip creation:** `POST /api/v1/dashboard/trips` (guarded, scoped to the caller's `companyId`) via `DashboardTripsService.create()`; validates ≥2 unique stations, monotonic times, and a positive price for every (i<j) station pair.
 - **Env vars (new):** `JWT_SECRET`, `JWT_EXPIRES_IN` (default `7d`), `DASHBOARD_BASE_URL` (used by the invite CLI when printing the acceptance URL).
 - **Seeder:** `npm run seed` (from the `backend` workspace) rebuilds companies → trips → mock bookings.
@@ -60,8 +61,9 @@ npm run build:backend     # Build backend service
 1. **Home** → select cities + date → Search
 2. **Timetable** → sort by departure time / duration / price → tap a trip
 3. **Seat Selection** → pick active gender (male/female) → tap seats → Continue
-4. **Payment** → pick payment method → Pay
-5. **Confirmation** → view ticket → Back to Home
+4. **Passenger Info** → enter name (required) + phone (required) + email (optional) → Continue
+5. **Payment** → pick payment method → Pay
+6. **Confirmation** → view ticket → Back to Home
 
 ## Deployment
 

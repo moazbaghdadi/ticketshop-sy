@@ -1,0 +1,43 @@
+<app-header title="بيانات المسافر" />
+
+<form class="passenger-page" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="intro">
+    <span class="material-icons">person</span>
+    <p>يرجى إدخال بيانات المسافر لإصدار التذكرة.</p>
+  </div>
+
+  <label class="field">
+    <span class="field-label">الاسم الكامل *</span>
+    <input type="text" formControlName="name" autocomplete="name" />
+    @if (form.controls.name.touched && form.controls.name.invalid) {
+      <span class="field-error">يرجى إدخال اسم صحيح</span>
+    }
+  </label>
+
+  <label class="field">
+    <span class="field-label">رقم الهاتف *</span>
+    <input type="tel" formControlName="phone" inputmode="tel" autocomplete="tel" dir="ltr" />
+    @if (form.controls.phone.touched && form.controls.phone.invalid) {
+      <span class="field-error">رقم هاتف غير صحيح</span>
+    }
+  </label>
+
+  <label class="field">
+    <span class="field-label">البريد الإلكتروني (اختياري)</span>
+    <input type="email" formControlName="email" autocomplete="email" dir="ltr" />
+    @if (form.controls.email.touched && form.controls.email.invalid) {
+      <span class="field-error">البريد الإلكتروني غير صالح</span>
+    }
+  </label>
+
+  <div class="actions">
+    <button type="button" class="secondary-btn" (click)="back()">
+      <span class="material-icons">arrow_forward</span>
+      رجوع
+    </button>
+    <button type="submit" class="primary-btn" [disabled]="form.invalid">
+      <span class="material-icons">arrow_back</span>
+      متابعة
+    </button>
+  </div>
+</form>

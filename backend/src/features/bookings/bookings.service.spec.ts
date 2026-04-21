@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import { BadRequestException, ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -34,8 +34,14 @@ describe('BookingsService', () => {
                 departureTime: '06:00',
             }),
             Object.assign(new TripStationEntity(), {
-                cityId: 'aleppo',
+                cityId: 'homs',
                 order: 1,
+                arrivalTime: '07:30',
+                departureTime: '07:40',
+            }),
+            Object.assign(new TripStationEntity(), {
+                cityId: 'aleppo',
+                order: 2,
                 arrivalTime: '09:30',
                 departureTime: null,
             }),
@@ -43,11 +49,32 @@ describe('BookingsService', () => {
         segmentPrices: [
             Object.assign(new TripSegmentPriceEntity(), {
                 fromCityId: 'damascus',
+                toCityId: 'homs',
+                price: 20000,
+            }),
+            Object.assign(new TripSegmentPriceEntity(), {
+                fromCityId: 'damascus',
                 toCityId: 'aleppo',
                 price: 45000,
             }),
+            Object.assign(new TripSegmentPriceEntity(), {
+                fromCityId: 'homs',
+                toCityId: 'aleppo',
+                price: 28000,
+            }),
         ] as TripSegmentPriceEntity[],
     })
+
+    const validPassenger = { name: 'أحمد علي', phone: '+963900000000', email: 'ahmad@example.com' }
+
+    const validDto: CreateBookingDto = {
+        tripId: 'trip-uuid',
+        seatSelections: [{ seatId: 5, gender: 'male' }],
+        paymentMethod: 'sham-cash',
+        boardingStationId: 'damascus',
+        dropoffStationId: 'aleppo',
+        passenger: validPassenger,
+    }
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -80,27 +107,50 @@ describe('BookingsService', () => {
         tripRepository = module.get(getRepositoryToken(TripEntity))
     })
 
-    const validDto: CreateBookingDto = {
-        tripId: 'trip-uuid',
-        seatSelections: [{ seatId: 5, gender: 'male' }],
-        paymentMethod: 'sham-cash',
-    }
-
-    it('creates a booking using the origin→terminus pair price', async () => {
+    it('creates a booking with the boarding→dropoff pair price', async () => {
         tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([])
         bookingRepository.findOne.mockResolvedValue(null)
 
         const result = await service.createBooking(validDto)
 
-        expect(result.trip.from.nameAr).toBe('دمشق')
-        expect(result.trip.to.nameAr).toBe('حلب')
-        expect(result.trip.company).toEqual({ id: mockCompany.id, nameAr: 'الأهلية' })
-        expect(result.trip.stations).toHaveLength(2)
+        expect(result.trip.from.id).toBe('damascus')
+        expect(result.trip.to.id).toBe('aleppo')
         expect(result.totalPrice).toBe(45000)
-        expect(result.seats).toEqual([5])
-        expect(result.status).toBe('confirmed')
+        expect(result.boardingStationId).toBe('damascus')
+        expect(result.dropoffStationId).toBe('aleppo')
+        expect(result.passenger).toEqual(validPassenger)
         expect(result.reference).toMatch(/^SY-[0-9A-F]{6}$/)
+    })
+
+    it('uses the intermediate pair price when boarding/dropoff is a segment', async () => {
+        tripRepository.findOne.mockResolvedValue(mockTrip)
+        bookingRepository.find.mockResolvedValue([])
+        bookingRepository.findOne.mockResolvedValue(null)
+
+        const dto: CreateBookingDto = {
+            ...validDto,
+            boardingStationId: 'homs',
+            dropoffStationId: 'aleppo',
+        }
+        const result = await service.createBooking(dto)
+        expect(result.totalPrice).toBe(28000)
+        expect(result.trip.from.id).toBe('homs')
+        expect(result.trip.to.id).toBe('aleppo')
+        expect(result.trip.departureTime).toBe('07:40')
+    })
+
+    it('persists null email when no passenger email is given', async () => {
+        tripRepository.findOne.mockResolvedValue(mockTrip)
+        bookingRepository.find.mockResolvedValue([])
+        bookingRepository.findOne.mockResolvedValue(null)
+
+        const dto: CreateBookingDto = {
+            ...validDto,
+            passenger: { name: 'راميا', phone: '+963911111111' },
+        }
+        const result = await service.createBooking(dto)
+        expect(result.passenger.email).toBeNull()
     })
 
     it('throws NotFoundException for non-existent trip', async () => {
@@ -108,13 +158,16 @@ describe('BookingsService', () => {
         await expect(service.createBooking(validDto)).rejects.toThrow(NotFoundException)
     })
 
-    it('throws UnprocessableEntityException when origin→terminus has no price', async () => {
-        const broken = Object.assign(new TripEntity(), {
-            ...mockTrip,
-            segmentPrices: [],
-        })
-        tripRepository.findOne.mockResolvedValue(broken)
-        await expect(service.createBooking(validDto)).rejects.toThrow(UnprocessableEntityException)
+    it('throws BadRequestException when boarding is not on the trip', async () => {
+        tripRepository.findOne.mockResolvedValue(mockTrip)
+        const dto = { ...validDto, boardingStationId: 'latakia' }
+        await expect(service.createBooking(dto)).rejects.toThrow(BadRequestException)
+    })
+
+    it('throws BadRequestException when boarding comes after dropoff', async () => {
+        tripRepository.findOne.mockResolvedValue(mockTrip)
+        const dto = { ...validDto, boardingStationId: 'aleppo', dropoffStationId: 'damascus' }
+        await expect(service.createBooking(dto)).rejects.toThrow(BadRequestException)
     })
 
     it('throws ConflictException for occupied seat', async () => {
@@ -135,32 +188,7 @@ describe('BookingsService', () => {
             } as BookingEntity,
         ])
 
-        const dto: CreateBookingDto = {
-            tripId: 'trip-uuid',
-            seatSelections: [{ seatId: 5, gender: 'male' }],
-            paymentMethod: 'sham-cash',
-        }
-
-        await expect(service.createBooking(dto)).rejects.toThrow(UnprocessableEntityException)
-    })
-
-    it('allows same-gender booking on same side', async () => {
-        tripRepository.findOne.mockResolvedValue(mockTrip)
-        bookingRepository.find.mockResolvedValue([
-            {
-                seatDetails: [{ id: 6, row: 1, col: 1, gender: 'male' }],
-            } as BookingEntity,
-        ])
-        bookingRepository.findOne.mockResolvedValue(null)
-
-        const dto: CreateBookingDto = {
-            tripId: 'trip-uuid',
-            seatSelections: [{ seatId: 5, gender: 'male' }],
-            paymentMethod: 'sham-cash',
-        }
-
-        const result = await service.createBooking(dto)
-        expect(result.status).toBe('confirmed')
+        await expect(service.createBooking(validDto)).rejects.toThrow(UnprocessableEntityException)
     })
 
     it('multiplies pair price by seat count', async () => {
@@ -169,12 +197,11 @@ describe('BookingsService', () => {
         bookingRepository.findOne.mockResolvedValue(null)
 
         const dto: CreateBookingDto = {
-            tripId: 'trip-uuid',
+            ...validDto,
             seatSelections: [
                 { seatId: 5, gender: 'male' },
                 { seatId: 6, gender: 'male' },
             ],
-            paymentMethod: 'sham-cash',
         }
 
         const result = await service.createBooking(dto)

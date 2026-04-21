@@ -48,10 +48,19 @@ export interface SeatSelection {
   gender: SeatGender;
 }
 
+export interface PassengerInfo {
+  name: string;
+  phone: string;
+  email?: string | null;
+}
+
 export interface CreateBookingRequest {
   tripId: string;
   seatSelections: SeatSelection[];
   paymentMethod: PaymentMethod;
+  boardingStationId: string;
+  dropoffStationId: string;
+  passenger: PassengerInfo;
 }
 
 export interface SeatDetail {
@@ -71,4 +80,7 @@ export interface BookingResponse {
   totalPrice: number;
   status: string;
   createdAt: string;
+  boardingStationId: string;
+  dropoffStationId: string;
+  passenger: PassengerInfo;
 }

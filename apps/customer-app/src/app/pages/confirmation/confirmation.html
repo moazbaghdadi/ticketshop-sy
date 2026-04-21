@@ -54,6 +54,22 @@
               <span class="detail-label">المقاعد</span>
               <span class="detail-value">{{ seatNumbers() }}</span>
             </div>
+            @if (passenger(); as p) {
+              <div class="detail-row">
+                <span class="detail-label">المسافر</span>
+                <span class="detail-value">{{ p.name }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">الهاتف</span>
+                <span class="detail-value">{{ p.phone }}</span>
+              </div>
+              @if (p.email) {
+                <div class="detail-row">
+                  <span class="detail-label">البريد الإلكتروني</span>
+                  <span class="detail-value">{{ p.email }}</span>
+                </div>
+              }
+            }
             <div class="detail-row">
               <span class="detail-label">طريقة الدفع</span>
               <span class="detail-value">{{ paymentLabel() }}</span>

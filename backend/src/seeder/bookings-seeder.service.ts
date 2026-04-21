@@ -99,6 +99,11 @@ export class BookingsSeederService {
                 paymentMethod: 'sham-cash',
                 totalPrice: pairPrice * occupiedSeats.length,
                 status: 'mock',
+                boardingStationId: origin.cityId,
+                dropoffStationId: terminus.cityId,
+                passengerName: 'زبون تجريبي',
+                passengerPhone: '+963900000000',
+                passengerEmail: null,
             })
             totalBookings++
 

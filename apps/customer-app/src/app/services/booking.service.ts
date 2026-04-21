@@ -2,6 +2,7 @@ import { computed, Injectable, signal } from '@angular/core';
 import {
   BookingResponse,
   City,
+  PassengerInfo,
   PaymentMethod,
   SeatGender,
   Trip,
@@ -16,6 +17,7 @@ export class BookingService {
   readonly selectedSeats = signal<number[]>([]);
   readonly selectedSeatMap = signal<Record<number, SeatGender>>({});
   readonly paymentMethod = signal<PaymentMethod | null>(null);
+  readonly passenger = signal<PassengerInfo | null>(null);
   readonly bookingResponse = signal<BookingResponse | null>(null);
 
   readonly bookingRef = computed(() => this.bookingResponse()?.reference ?? '');
@@ -41,6 +43,7 @@ export class BookingService {
     this.selectedSeats.set([]);
     this.selectedSeatMap.set({});
     this.paymentMethod.set(null);
+    this.passenger.set(null);
     this.bookingResponse.set(null);
   }
 }

@@ -62,6 +62,21 @@ export class BookingEntity {
     @Column({ default: 'confirmed' })
     status!: string
 
+    @Column()
+    boardingStationId!: string
+
+    @Column()
+    dropoffStationId!: string
+
+    @Column()
+    passengerName!: string
+
+    @Column()
+    passengerPhone!: string
+
+    @Column({ type: 'varchar', nullable: true })
+    passengerEmail!: string | null
+
     @CreateDateColumn()
     createdAt!: Date
 }
