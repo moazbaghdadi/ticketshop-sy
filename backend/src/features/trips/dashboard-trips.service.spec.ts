@@ -1,14 +1,18 @@
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { BookingEntity } from '../bookings/entities/booking.entity'
 import { DashboardTripsService } from './dashboard-trips.service'
 import { CreateDashboardTripDto } from './dto/create-dashboard-trip.dto'
+import { CancelledTripDismissalEntity } from './entities/cancelled-trip-dismissal.entity'
 import { TripEntity } from './entities/trip.entity'
 
 describe('DashboardTripsService', () => {
     let service: DashboardTripsService
     let repository: jest.Mocked<Repository<TripEntity>>
+    let bookingRepository: jest.Mocked<Repository<BookingEntity>>
+    let dismissalRepository: jest.Mocked<Repository<CancelledTripDismissalEntity>>
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -20,8 +24,23 @@ describe('DashboardTripsService', () => {
                         create: jest.fn((entity: Partial<TripEntity>) => ({ ...entity }) as TripEntity),
                         save: jest.fn(async (entity: Partial<TripEntity>) => ({
                             ...entity,
-                            id: 'new-trip-uuid',
+                            id: entity.id ?? 'new-trip-uuid',
                         }) as TripEntity),
+                        findOne: jest.fn(),
+                    },
+                },
+                {
+                    provide: getRepositoryToken(BookingEntity),
+                    useValue: {
+                        update: jest.fn(),
+                    },
+                },
+                {
+                    provide: getRepositoryToken(CancelledTripDismissalEntity),
+                    useValue: {
+                        findOne: jest.fn(),
+                        create: jest.fn((e: Partial<CancelledTripDismissalEntity>) => e as CancelledTripDismissalEntity),
+                        save: jest.fn(async (e: Partial<CancelledTripDismissalEntity>) => e as CancelledTripDismissalEntity),
                     },
                 },
             ],
@@ -29,6 +48,8 @@ describe('DashboardTripsService', () => {
 
         service = module.get<DashboardTripsService>(DashboardTripsService)
         repository = module.get(getRepositoryToken(TripEntity))
+        bookingRepository = module.get(getRepositoryToken(BookingEntity))
+        dismissalRepository = module.get(getRepositoryToken(CancelledTripDismissalEntity))
     })
 
     const validDto: CreateDashboardTripDto = {
@@ -161,5 +182,67 @@ describe('DashboardTripsService', () => {
             ],
         }
         await expect(service.create('company-uuid', dto)).rejects.toThrow(/Duplicate segment price/)
+    })
+
+    describe('cancel', () => {
+        it('marks the trip cancelled and its bookings cancelled', async () => {
+            const trip = { id: 'trip-uuid', companyId: 'company-uuid', cancelledAt: null, cancelledReason: null } as TripEntity
+            repository.findOne.mockResolvedValue(trip)
+
+            const result = await service.cancel('company-uuid', 'trip-uuid', 'weather')
+
+            expect(result.cancelledAt).toBeInstanceOf(Date)
+            expect(result.cancelledReason).toBe('weather')
+            expect(bookingRepository.update).toHaveBeenCalledWith({ tripId: 'trip-uuid' }, { status: 'cancelled' })
+        })
+
+        it('throws NotFoundException for unknown trip', async () => {
+            repository.findOne.mockResolvedValue(null)
+            await expect(service.cancel('company-uuid', 'missing', 'x')).rejects.toThrow(NotFoundException)
+        })
+
+        it('throws ForbiddenException when trip belongs to another company', async () => {
+            const trip = { id: 'trip-uuid', companyId: 'other-company', cancelledAt: null } as TripEntity
+            repository.findOne.mockResolvedValue(trip)
+            await expect(service.cancel('company-uuid', 'trip-uuid', 'x')).rejects.toThrow(ForbiddenException)
+        })
+
+        it('is idempotent for already-cancelled trips', async () => {
+            const cancelledAt = new Date('2026-04-01T00:00:00Z')
+            const trip = { id: 'trip-uuid', companyId: 'company-uuid', cancelledAt, cancelledReason: 'older' } as TripEntity
+            repository.findOne.mockResolvedValue(trip)
+
+            const result = await service.cancel('company-uuid', 'trip-uuid', 'newer-reason')
+
+            expect(result.cancelledAt).toBe(cancelledAt)
+            expect(result.cancelledReason).toBe('older')
+            expect(bookingRepository.update).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('dismissCancellation', () => {
+        it('inserts a dismissal for the current user', async () => {
+            repository.findOne.mockResolvedValue({ id: 'trip-uuid', companyId: 'company-uuid' } as TripEntity)
+            dismissalRepository.findOne.mockResolvedValue(null)
+
+            await service.dismissCancellation('user-uuid', 'company-uuid', 'trip-uuid')
+
+            expect(dismissalRepository.create).toHaveBeenCalledWith({ userId: 'user-uuid', tripId: 'trip-uuid' })
+            expect(dismissalRepository.save).toHaveBeenCalled()
+        })
+
+        it('is idempotent when already dismissed', async () => {
+            repository.findOne.mockResolvedValue({ id: 'trip-uuid', companyId: 'company-uuid' } as TripEntity)
+            dismissalRepository.findOne.mockResolvedValue({ id: 'd1' } as CancelledTripDismissalEntity)
+
+            await service.dismissCancellation('user-uuid', 'company-uuid', 'trip-uuid')
+
+            expect(dismissalRepository.save).not.toHaveBeenCalled()
+        })
+
+        it('rejects dismissals for trips from other companies', async () => {
+            repository.findOne.mockResolvedValue({ id: 'trip-uuid', companyId: 'other' } as TripEntity)
+            await expect(service.dismissCancellation('user-uuid', 'company-uuid', 'trip-uuid')).rejects.toThrow(ForbiddenException)
+        })
     })
 })

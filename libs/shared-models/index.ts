@@ -83,4 +83,7 @@ export interface BookingResponse {
   boardingStationId: string;
   dropoffStationId: string;
   passenger: PassengerInfo;
+  tripCancelled: boolean;
+  tripCancelledAt: string | null;
+  tripCancelledReason: string | null;
 }

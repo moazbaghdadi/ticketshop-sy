@@ -1,8 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CITY_IDS } from '../../common/data/cities.data'
+import { BookingEntity } from '../bookings/entities/booking.entity'
 import { CreateDashboardTripDto } from './dto/create-dashboard-trip.dto'
+import { CancelledTripDismissalEntity } from './entities/cancelled-trip-dismissal.entity'
 import { TripSegmentPriceEntity } from './entities/trip-segment-price.entity'
 import { TripStationEntity } from './entities/trip-station.entity'
 import { TripEntity } from './entities/trip.entity'
@@ -12,8 +14,49 @@ import { parseHm } from './trip.mapper'
 export class DashboardTripsService {
     constructor(
         @InjectRepository(TripEntity)
-        private readonly tripRepository: Repository<TripEntity>
+        private readonly tripRepository: Repository<TripEntity>,
+        @InjectRepository(BookingEntity)
+        private readonly bookingRepository: Repository<BookingEntity>,
+        @InjectRepository(CancelledTripDismissalEntity)
+        private readonly dismissalRepository: Repository<CancelledTripDismissalEntity>
     ) {}
+
+    async cancel(companyId: string, tripId: string, reason: string): Promise<TripEntity> {
+        const trip = await this.tripRepository.findOne({ where: { id: tripId } })
+        if (!trip) {
+            throw new NotFoundException(`Trip ${tripId} not found`)
+        }
+        if (trip.companyId !== companyId) {
+            throw new ForbiddenException('Cannot cancel a trip that belongs to another company')
+        }
+        if (trip.cancelledAt) {
+            return trip
+        }
+
+        trip.cancelledAt = new Date()
+        trip.cancelledReason = reason
+
+        await this.tripRepository.save(trip)
+        await this.bookingRepository.update({ tripId }, { status: 'cancelled' })
+
+        return trip
+    }
+
+    async dismissCancellation(userId: string, companyId: string, tripId: string): Promise<void> {
+        const trip = await this.tripRepository.findOne({ where: { id: tripId } })
+        if (!trip) {
+            throw new NotFoundException(`Trip ${tripId} not found`)
+        }
+        if (trip.companyId !== companyId) {
+            throw new ForbiddenException('Cannot dismiss a trip from another company')
+        }
+
+        const existing = await this.dismissalRepository.findOne({ where: { userId, tripId } })
+        if (existing) return
+
+        const dismissal = this.dismissalRepository.create({ userId, tripId })
+        await this.dismissalRepository.save(dismissal)
+    }
 
     async create(companyId: string, dto: CreateDashboardTripDto): Promise<TripEntity> {
         this.validate(dto)

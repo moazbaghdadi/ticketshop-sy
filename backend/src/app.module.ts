@@ -6,6 +6,7 @@ import { AppService } from './app.service'
 import { AuthModule } from './features/auth/auth.module'
 import { BookingsModule } from './features/bookings/bookings.module'
 import { CompaniesModule } from './features/companies/companies.module'
+import { MailModule } from './features/mail/mail.module'
 import { SeatsModule } from './features/seats/seats.module'
 import { TripsModule } from './features/trips/trips.module'
 
@@ -26,6 +27,7 @@ import { TripsModule } from './features/trips/trips.module'
         }),
         CompaniesModule,
         AuthModule,
+        MailModule,
         TripsModule,
         SeatsModule,
         BookingsModule,

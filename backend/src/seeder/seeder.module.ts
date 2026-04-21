@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { BookingEntity } from '../features/bookings/entities/booking.entity'
 import { CompanyEntity } from '../features/companies/entities/company.entity'
+import { CancelledTripDismissalEntity } from '../features/trips/entities/cancelled-trip-dismissal.entity'
 import { TripSegmentPriceEntity } from '../features/trips/entities/trip-segment-price.entity'
 import { TripStationEntity } from '../features/trips/entities/trip-station.entity'
 import { TripEntity } from '../features/trips/entities/trip.entity'
@@ -20,11 +21,25 @@ import { TripsSeederService } from './trips-seeder.service'
             useFactory: (config: ConfigService) => ({
                 type: 'postgres' as const,
                 url: config.get<string>('DATABASE_URL', 'postgres://postgres:postgres@localhost:5432/postgres'),
-                entities: [CompanyEntity, TripEntity, TripStationEntity, TripSegmentPriceEntity, BookingEntity],
+                entities: [
+                    CompanyEntity,
+                    TripEntity,
+                    TripStationEntity,
+                    TripSegmentPriceEntity,
+                    CancelledTripDismissalEntity,
+                    BookingEntity,
+                ],
                 synchronize: true,
             }),
         }),
-        TypeOrmModule.forFeature([CompanyEntity, TripEntity, TripStationEntity, TripSegmentPriceEntity, BookingEntity]),
+        TypeOrmModule.forFeature([
+            CompanyEntity,
+            TripEntity,
+            TripStationEntity,
+            TripSegmentPriceEntity,
+            CancelledTripDismissalEntity,
+            BookingEntity,
+        ]),
     ],
     providers: [SeederService, CompaniesSeederService, TripsSeederService, BookingsSeederService],
 })

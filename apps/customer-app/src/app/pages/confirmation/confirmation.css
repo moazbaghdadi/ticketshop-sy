@@ -6,6 +6,29 @@
   align-items: center;
 }
 
+.cancellation-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  background: #fdecea;
+  color: #b71c1c;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.cancellation-banner .material-icons {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.cancellation-reason {
+  margin-top: 4px;
+  font-weight: 400;
+}
+
 .success-icon .material-icons {
   font-size: 72px;
   color: var(--color-success);

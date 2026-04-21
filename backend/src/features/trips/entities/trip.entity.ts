@@ -25,4 +25,10 @@ export class TripEntity {
 
     @OneToMany(() => TripSegmentPriceEntity, price => price.trip, { cascade: true })
     segmentPrices!: TripSegmentPriceEntity[]
+
+    @Column({ type: 'timestamptz', nullable: true })
+    cancelledAt!: Date | null
+
+    @Column({ type: 'varchar', nullable: true })
+    cancelledReason!: string | null
 }

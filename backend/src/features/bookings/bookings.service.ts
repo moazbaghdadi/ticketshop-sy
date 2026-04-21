@@ -132,7 +132,10 @@ export class BookingsService {
     }
 
     async findByReference(reference: string): Promise<BookingResponse> {
-        const booking = await this.bookingRepository.findOne({ where: { reference } })
+        const booking = await this.bookingRepository.findOne({
+            where: { reference },
+            relations: { trip: true },
+        })
         if (!booking) {
             throw new NotFoundException(`Booking with reference ${reference} not found`)
         }
@@ -186,6 +189,9 @@ export class BookingsService {
                 phone: booking.passengerPhone,
                 email: booking.passengerEmail,
             },
+            tripCancelled: booking.trip?.cancelledAt != null,
+            tripCancelledAt: booking.trip?.cancelledAt ? booking.trip.cancelledAt.toISOString() : null,
+            tripCancelledReason: booking.trip?.cancelledReason ?? null,
         }
     }
 
