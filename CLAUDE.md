@@ -8,10 +8,11 @@ A monorepo containing the TicketShop Syria ecosystem, including the customer boo
 ticketshop-sy/
 ├── apps/
 │   ├── customer-app/        # Angular 21 mobile-first click-dummy (Arabic/RTL)
-│   └── admin-dashboard/     # [Planned] Travel-companies dashboard
+│   └── admin-dashboard/     # Angular 21 travel-companies dashboard (port 4201)
 ├── libs/
-│   └── shared-models/       # Shared TypeScript interfaces (e.g., TravelRoute)
-├── backend/                 # Node.js/Express/TypeScript backend service
+│   ├── shared-models/       # Shared TypeScript interfaces (e.g., TravelRoute)
+│   └── shared-ui/           # Shared Angular components (empty placeholder — seat layout to come)
+├── backend/                 # Node.js/NestJS/TypeScript backend service
 └── package.json             # Root workspace management and helper scripts
 ```
 
@@ -22,6 +23,12 @@ ticketshop-sy/
 - **UI:** Angular Material, Pure CSS (no Tailwind/Bootstrap)
 - **Internationalization:** RTL layout (`dir="rtl" lang="ar"`)
 - **Features:** Mock trip generator, seat gender system, timetable sorting.
+
+### Admin Dashboard (apps/admin-dashboard)
+- **Framework:** Angular 21 standalone (mirrors customer-app). Runs on port **4201**.
+- **Auth:** `AuthService` persists JWT + user in `localStorage`; `authInterceptor` attaches the token and logs the user out on 401; `authGuard` protects routes.
+- **Shell:** sticky topbar + right-side sidebar (Arabic/RTL). Sidebar currently has one active link (`/dashboard`); later commits will enable Trips / New Trip / Reports.
+- **Routes:** `/login`, `/accept-invitation/:token`, guarded `/dashboard`.
 
 ### Backend (backend)
 - **Runtime:** Node.js
@@ -53,9 +60,15 @@ npm run start:app     # Run customer app in dev mode
 npm run build:app     # Build customer app for production
 npm run deploy:app    # Deploy customer app to GitHub Pages
 
+# Admin Dashboard
+npm run start:admin   # Run admin dashboard in dev mode (port 4201)
+npm run build:admin   # Build admin dashboard for production
+
 # Backend
 npm run start:backend     # Run backend service
 npm run build:backend     # Build backend service
+npm run seed -w backend   # Rebuild companies → trips → mock bookings
+npm run invite -w backend -- --email=<email> --companyId=<uuid>   # Issue an invitation
 ```
 
 ## Flow (Customer App)

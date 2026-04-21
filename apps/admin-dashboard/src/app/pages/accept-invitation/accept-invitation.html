@@ -1,0 +1,53 @@
+<div class="auth-page">
+  <div class="auth-card">
+    @if (loading()) {
+      <div class="loading-state">
+        <span class="material-icons spinning">sync</span>
+        <p>جارٍ تحميل بيانات الدعوة...</p>
+      </div>
+    } @else if (loadError(); as err) {
+      <div class="auth-header">
+        <span class="material-icons error-icon">error_outline</span>
+        <h1>دعوة غير صالحة</h1>
+        <p>{{ err }}</p>
+      </div>
+      <button type="button" class="primary-btn" (click)="goToLogin()">العودة لتسجيل الدخول</button>
+    } @else if (invitation(); as inv) {
+      <div class="auth-header">
+        <span class="material-icons">mark_email_read</span>
+        <h1>قبول الدعوة</h1>
+        <p>مرحبًا بك في <strong>{{ inv.companyName }}</strong></p>
+        <p class="invitation-email">{{ inv.email }}</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        @if (submitError(); as err) {
+          <div class="error-banner">{{ err }}</div>
+        }
+
+        <label class="field">
+          <span class="field-label">كلمة المرور</span>
+          <input type="password" formControlName="password" dir="ltr" autocomplete="new-password" />
+          @if (form.controls.password.touched && form.controls.password.invalid) {
+            <span class="field-error">كلمة المرور مطلوبة (٨ أحرف على الأقل)</span>
+          }
+        </label>
+
+        <label class="field">
+          <span class="field-label">تأكيد كلمة المرور</span>
+          <input type="password" formControlName="confirmPassword" dir="ltr" autocomplete="new-password" />
+          @if (form.controls.confirmPassword.touched && form.hasError('passwordsMismatch')) {
+            <span class="field-error">كلمتا المرور غير متطابقتين</span>
+          }
+        </label>
+
+        <button type="submit" class="primary-btn" [disabled]="submitting()">
+          @if (submitting()) {
+            <span class="material-icons spinning">sync</span>
+          }
+          تفعيل الحساب
+        </button>
+      </form>
+    }
+  </div>
+</div>

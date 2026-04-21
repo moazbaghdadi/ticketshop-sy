@@ -1,0 +1,40 @@
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <span class="material-icons">directions_bus</span>
+      <span class="brand-name">لوحة تحكم الشركة</span>
+    </div>
+    <div class="user-menu">
+      <span class="user-email">{{ auth.user()?.email }}</span>
+      <button class="logout-btn" (click)="logout()">
+        <span class="material-icons">logout</span>
+        تسجيل الخروج
+      </button>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside class="sidebar">
+      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+        <span class="material-icons">dashboard</span>
+        الرئيسية
+      </a>
+      <a class="nav-item disabled">
+        <span class="material-icons">directions_bus</span>
+        الرحلات
+      </a>
+      <a class="nav-item disabled">
+        <span class="material-icons">add_circle</span>
+        رحلة جديدة
+      </a>
+      <a class="nav-item disabled">
+        <span class="material-icons">summarize</span>
+        التقارير
+      </a>
+    </aside>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

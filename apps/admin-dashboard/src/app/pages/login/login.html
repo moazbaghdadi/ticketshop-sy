@@ -1,0 +1,38 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <span class="material-icons">directions_bus</span>
+      <h1>لوحة تحكم الشركة</h1>
+      <p>يرجى تسجيل الدخول للمتابعة</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      @if (error(); as err) {
+        <div class="error-banner">{{ err }}</div>
+      }
+
+      <label class="field">
+        <span class="field-label">البريد الإلكتروني</span>
+        <input type="email" formControlName="email" dir="ltr" autocomplete="email" />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <span class="field-error">أدخل بريدًا إلكترونيًا صحيحًا</span>
+        }
+      </label>
+
+      <label class="field">
+        <span class="field-label">كلمة المرور</span>
+        <input type="password" formControlName="password" dir="ltr" autocomplete="current-password" />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <span class="field-error">كلمة المرور مطلوبة (٨ أحرف على الأقل)</span>
+        }
+      </label>
+
+      <button type="submit" class="primary-btn" [disabled]="submitting()">
+        @if (submitting()) {
+          <span class="material-icons spinning">sync</span>
+        }
+        دخول
+      </button>
+    </form>
+  </div>
+</div>

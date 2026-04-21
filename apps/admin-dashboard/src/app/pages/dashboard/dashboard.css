@@ -1,0 +1,39 @@
+.dashboard-page h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  color: var(--color-text-dark);
+}
+
+.dashboard-page .subtitle {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.placeholder-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  max-width: 560px;
+}
+
+.placeholder-card .material-icons {
+  font-size: 28px;
+  color: var(--color-primary);
+}
+
+.placeholder-card strong {
+  display: block;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+}
+
+.placeholder-card p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text);
+}
