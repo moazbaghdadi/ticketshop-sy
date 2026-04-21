@@ -27,8 +27,11 @@ ticketshop-sy/
 - **Runtime:** Node.js
 - **Framework:** NestJS (TypeScript, Strict Mode)
 - **Persistence:** PostgreSQL via TypeORM (`synchronize: true` in development only).
-- **Feature modules:** `companies/`, `trips/`, `seats/`, `bookings/`.
+- **Feature modules:** `companies/`, `auth/`, `trips/`, `seats/`, `bookings/`.
+- **Auth:** JWT via `@nestjs/jwt` + `passport-jwt`. Users are created from invitations (CLI-only in v1). Endpoints: `POST /api/v1/auth/login`, `GET /api/v1/auth/invitations/:token`, `POST /api/v1/auth/invitations/:token/accept`, `GET /api/v1/auth/me`. Guard: `JwtAuthGuard`; decorator: `@CurrentUser()`.
+- **Env vars (new):** `JWT_SECRET`, `JWT_EXPIRES_IN` (default `7d`), `DASHBOARD_BASE_URL` (used by the invite CLI when printing the acceptance URL).
 - **Seeder:** `npm run seed` (from the `backend` workspace) rebuilds companies → trips → mock bookings.
+- **Invite CLI:** `npm run invite --workspace backend -- --email=<email> --companyId=<uuid>` inserts an invitation row and prints the acceptance URL.
 
 ### Shared Library (libs/shared-models)
 - **Purpose:** Shared TypeScript types and interfaces between frontend and backend.

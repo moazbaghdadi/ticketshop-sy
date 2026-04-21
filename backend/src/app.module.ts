@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
+import { AuthModule } from './features/auth/auth.module'
 import { BookingsModule } from './features/bookings/bookings.module'
 import { CompaniesModule } from './features/companies/companies.module'
 import { SeatsModule } from './features/seats/seats.module'
@@ -24,6 +25,7 @@ import { TripsModule } from './features/trips/trips.module'
             }),
         }),
         CompaniesModule,
+        AuthModule,
         TripsModule,
         SeatsModule,
         BookingsModule,
