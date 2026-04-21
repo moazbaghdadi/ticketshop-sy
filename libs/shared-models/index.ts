@@ -3,11 +3,16 @@ export interface City {
   nameAr: string;
 }
 
+export interface Company {
+  id: string;
+  nameAr: string;
+}
+
 export interface Trip {
   id: string;
   from: City;
   to: City;
-  company: string;
+  company: Company;
   departureTime: string;
   arrivalTime: string;
   duration: string;

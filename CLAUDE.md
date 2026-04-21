@@ -26,10 +26,13 @@ ticketshop-sy/
 ### Backend (backend)
 - **Runtime:** Node.js
 - **Framework:** NestJS (TypeScript, Strict Mode)
-- **Status:** Initial setup implemented with boilerplate.
+- **Persistence:** PostgreSQL via TypeORM (`synchronize: true` in development only).
+- **Feature modules:** `companies/`, `trips/`, `seats/`, `bookings/`.
+- **Seeder:** `npm run seed` (from the `backend` workspace) rebuilds companies → trips → mock bookings.
 
 ### Shared Library (libs/shared-models)
 - **Purpose:** Shared TypeScript types and interfaces between frontend and backend.
+- `Trip.company` is a `{ id: string; nameAr: string }` — companies are first-class entities.
 
 ## Common Commands
 

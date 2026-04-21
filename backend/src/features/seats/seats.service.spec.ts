@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { BookingEntity } from '../bookings/entities/booking.entity'
+import { CompanyEntity } from '../companies/entities/company.entity'
 import { TripEntity } from '../trips/entities/trip.entity'
 import { SeatsService } from './seats.service'
 
@@ -11,11 +12,18 @@ describe('SeatsService', () => {
     let tripRepository: jest.Mocked<Repository<TripEntity>>
     let bookingRepository: jest.Mocked<Repository<BookingEntity>>
 
+    const mockCompany: CompanyEntity = {
+        id: 'company-uuid',
+        nameAr: 'الأهلية',
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+    }
+
     const mockTrip: TripEntity = {
         id: 'trip-uuid',
         fromCityId: 'damascus',
         toCityId: 'aleppo',
-        company: 'الأهلية',
+        companyId: mockCompany.id,
+        company: mockCompany,
         departureTime: '06:00',
         arrivalTime: '09:30',
         duration: '3 ساعات و 30 دقيقة',

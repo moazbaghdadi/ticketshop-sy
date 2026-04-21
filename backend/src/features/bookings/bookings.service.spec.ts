@@ -2,6 +2,7 @@ import { ConflictException, NotFoundException, UnprocessableEntityException } fr
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { CompanyEntity } from '../companies/entities/company.entity'
 import { TripEntity } from '../trips/entities/trip.entity'
 import { BookingsService } from './bookings.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
@@ -12,11 +13,18 @@ describe('BookingsService', () => {
     let bookingRepository: jest.Mocked<Repository<BookingEntity>>
     let tripRepository: jest.Mocked<Repository<TripEntity>>
 
+    const mockCompany: CompanyEntity = {
+        id: 'company-uuid',
+        nameAr: 'الأهلية',
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+    }
+
     const mockTrip: TripEntity = {
         id: 'trip-uuid',
         fromCityId: 'damascus',
         toCityId: 'aleppo',
-        company: 'الأهلية',
+        companyId: mockCompany.id,
+        company: mockCompany,
         departureTime: '06:00',
         arrivalTime: '09:30',
         duration: '3 ساعات و 30 دقيقة',
@@ -46,7 +54,7 @@ describe('BookingsService', () => {
                 {
                     provide: getRepositoryToken(TripEntity),
                     useValue: {
-                        findOneBy: jest.fn(),
+                        findOne: jest.fn(),
                     },
                 },
             ],
@@ -63,8 +71,8 @@ describe('BookingsService', () => {
         paymentMethod: 'sham-cash',
     }
 
-    it('should create a booking successfully', async () => {
-        tripRepository.findOneBy.mockResolvedValue(mockTrip)
+    it('should create a booking successfully and embed company in snapshot', async () => {
+        tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([])
         bookingRepository.findOne.mockResolvedValue(null) // reference is unique
 
@@ -72,6 +80,7 @@ describe('BookingsService', () => {
 
         expect(result.trip.from.nameAr).toBe('دمشق')
         expect(result.trip.to.nameAr).toBe('حلب')
+        expect(result.trip.company).toEqual({ id: mockCompany.id, nameAr: 'الأهلية' })
         expect(result.totalPrice).toBe(45000)
         expect(result.seats).toEqual([5])
         expect(result.status).toBe('confirmed')
@@ -79,13 +88,13 @@ describe('BookingsService', () => {
     })
 
     it('should throw NotFoundException for non-existent trip', async () => {
-        tripRepository.findOneBy.mockResolvedValue(null)
+        tripRepository.findOne.mockResolvedValue(null)
 
         await expect(service.createBooking(validDto)).rejects.toThrow(NotFoundException)
     })
 
     it('should throw ConflictException for occupied seat', async () => {
-        tripRepository.findOneBy.mockResolvedValue(mockTrip)
+        tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([
             {
                 seatDetails: [{ id: 5, row: 1, col: 0, gender: 'female' }],
@@ -96,9 +105,7 @@ describe('BookingsService', () => {
     })
 
     it('should throw UnprocessableEntityException for gender conflict', async () => {
-        tripRepository.findOneBy.mockResolvedValue(mockTrip)
-        // Seat 5 is row 1, col 0. Seat 6 is row 1, col 1 (same side-pair).
-        // If seat 6 is occupied by female, booking seat 5 as male conflicts.
+        tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([
             {
                 seatDetails: [{ id: 6, row: 1, col: 1, gender: 'female' }],
@@ -115,7 +122,7 @@ describe('BookingsService', () => {
     })
 
     it('should allow same-gender booking on same side', async () => {
-        tripRepository.findOneBy.mockResolvedValue(mockTrip)
+        tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([
             {
                 seatDetails: [{ id: 6, row: 1, col: 1, gender: 'male' }],
@@ -134,7 +141,7 @@ describe('BookingsService', () => {
     })
 
     it('should calculate total price correctly for multiple seats', async () => {
-        tripRepository.findOneBy.mockResolvedValue(mockTrip)
+        tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([])
         bookingRepository.findOne.mockResolvedValue(null)
 

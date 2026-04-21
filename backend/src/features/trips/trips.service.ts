@@ -16,13 +16,14 @@ export class TripsService {
         const entities = await this.tripRepository.find({
             where: { fromCityId, toCityId, date },
             order: { departureTime: 'ASC' },
+            relations: { company: true },
         })
 
         return entities.map(entity => this.toTrip(entity))
     }
 
     async findById(id: string): Promise<TripEntity | null> {
-        return this.tripRepository.findOneBy({ id })
+        return this.tripRepository.findOne({ where: { id }, relations: { company: true } })
     }
 
     private toTrip(entity: TripEntity): Trip {
@@ -33,7 +34,7 @@ export class TripsService {
             id: entity.id,
             from: fromCity ?? { id: entity.fromCityId, nameAr: entity.fromCityId },
             to: toCity ?? { id: entity.toCityId, nameAr: entity.toCityId },
-            company: entity.company,
+            company: { id: entity.company.id, nameAr: entity.company.nameAr },
             departureTime: entity.departureTime,
             arrivalTime: entity.arrivalTime,
             duration: entity.duration,

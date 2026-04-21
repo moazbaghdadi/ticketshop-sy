@@ -2,9 +2,8 @@ import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CITIES } from '../common/data/cities.data'
+import { CompanyEntity } from '../features/companies/entities/company.entity'
 import { TripEntity } from '../features/trips/entities/trip.entity'
-
-const COMPANIES = ['الأهلية', 'القدموس', 'الزنوبية', 'النورس', 'الأمانة']
 
 const TRIP_TEMPLATES = [
     { depHour: 6, depMin: 0 },
@@ -39,7 +38,7 @@ export function seededRandom(seed: number): () => number {
 interface GeneratedTrip {
     fromCityId: string
     toCityId: string
-    company: string
+    companyId: string
     departureTime: string
     arrivalTime: string
     duration: string
@@ -49,7 +48,10 @@ interface GeneratedTrip {
     date: string
 }
 
-export function generateTripsData(fromCityId: string, toCityId: string, date: string): GeneratedTrip[] {
+export function generateTripsData(fromCityId: string, toCityId: string, date: string, companyIds: string[]): GeneratedTrip[] {
+    if (companyIds.length === 0) {
+        throw new Error('generateTripsData requires at least one companyId')
+    }
     const seed = (fromCityId + toCityId + date).split('').reduce((a, c) => a + c.charCodeAt(0), 0)
     const rand = seededRandom(seed)
 
@@ -68,7 +70,7 @@ export function generateTripsData(fromCityId: string, toCityId: string, date: st
         return {
             fromCityId,
             toCityId,
-            company: COMPANIES[Math.floor(rand() * COMPANIES.length)]!,
+            companyId: companyIds[Math.floor(rand() * companyIds.length)]!,
             departureTime: `${pad(t.depHour)}:${pad(t.depMin)}`,
             arrivalTime: `${pad(arrHour)}:${pad(arrMin)}`,
             duration: formatDuration(durationMinutes),
@@ -87,9 +89,13 @@ export class TripsSeederService {
         private readonly tripRepository: Repository<TripEntity>
     ) {}
 
-    async seed(daysAhead: number = 7): Promise<number> {
+    async seed(companies: CompanyEntity[], daysAhead: number = 7): Promise<number> {
+        if (companies.length === 0) {
+            throw new Error('TripsSeederService.seed requires at least one company')
+        }
         await this.tripRepository.query('TRUNCATE TABLE "trips" CASCADE')
 
+        const companyIds = companies.map(c => c.id)
         const today = new Date()
         const allTrips: Partial<TripEntity>[] = []
 
@@ -101,7 +107,7 @@ export class TripsSeederService {
             for (const from of CITIES) {
                 for (const to of CITIES) {
                     if (from.id === to.id) continue
-                    const trips = generateTripsData(from.id, to.id, dateStr)
+                    const trips = generateTripsData(from.id, to.id, dateStr, companyIds)
                     allTrips.push(...trips)
                 }
             }

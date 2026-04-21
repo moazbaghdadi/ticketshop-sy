@@ -27,7 +27,9 @@ export class SeatSelectionPage implements OnInit {
 
   headerTitle = computed(() => {
     const trip = this.booking.selectedTrip();
-    return trip ? `${trip.company} - ${trip.from.nameAr} → ${trip.to.nameAr}` : 'اختيار المقاعد';
+    return trip
+      ? `${trip.company.nameAr} - ${trip.from.nameAr} → ${trip.to.nameAr}`
+      : 'اختيار المقاعد';
   });
 
   selectedCount = computed(() => Object.keys(this.selectedSeatMap()).length);

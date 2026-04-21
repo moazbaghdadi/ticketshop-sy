@@ -27,7 +27,7 @@ export class BookingsSeederService {
     ) {}
 
     async seed(): Promise<number> {
-        const trips = await this.tripRepository.find()
+        const trips = await this.tripRepository.find({ relations: { company: true } })
         this.logger.log(`Generating mock bookings for ${trips.length} trips...`)
 
         let totalBookings = 0
@@ -70,7 +70,7 @@ export class BookingsSeederService {
                     id: trip.id,
                     fromCityId: trip.fromCityId,
                     toCityId: trip.toCityId,
-                    company: trip.company,
+                    company: { id: trip.company.id, nameAr: trip.company.nameAr },
                     departureTime: trip.departureTime,
                     arrivalTime: trip.arrivalTime,
                     duration: trip.duration,

@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { CompanyEntity } from '../../companies/entities/company.entity'
 
 @Entity('trips')
 export class TripEntity {
@@ -11,8 +12,13 @@ export class TripEntity {
     @Column()
     toCityId!: string
 
-    @Column()
-    company!: string
+    @Index()
+    @Column('uuid')
+    companyId!: string
+
+    @ManyToOne(() => CompanyEntity, { onDelete: 'RESTRICT' })
+    @JoinColumn({ name: 'companyId' })
+    company!: CompanyEntity
 
     @Column()
     departureTime!: string

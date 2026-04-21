@@ -19,7 +19,7 @@ export class BookingsService {
 
     async createBooking(dto: CreateBookingDto): Promise<BookingResponse> {
         // 1. Verify trip exists
-        const trip = await this.tripRepository.findOneBy({ id: dto.tripId })
+        const trip = await this.tripRepository.findOne({ where: { id: dto.tripId }, relations: { company: true } })
         if (!trip) {
             throw new NotFoundException(`Trip ${dto.tripId} not found`)
         }
@@ -81,7 +81,7 @@ export class BookingsService {
                 id: trip.id,
                 fromCityId: trip.fromCityId,
                 toCityId: trip.toCityId,
-                company: trip.company,
+                company: { id: trip.company.id, nameAr: trip.company.nameAr },
                 departureTime: trip.departureTime,
                 arrivalTime: trip.arrivalTime,
                 duration: trip.duration,

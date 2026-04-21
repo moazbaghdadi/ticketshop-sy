@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { BookingsModule } from './features/bookings/bookings.module'
+import { CompaniesModule } from './features/companies/companies.module'
 import { SeatsModule } from './features/seats/seats.module'
 import { TripsModule } from './features/trips/trips.module'
 
@@ -22,6 +23,7 @@ import { TripsModule } from './features/trips/trips.module'
                 synchronize: config.get<string>('NODE_ENV', 'development') === 'development',
             }),
         }),
+        CompaniesModule,
         TripsModule,
         SeatsModule,
         BookingsModule,

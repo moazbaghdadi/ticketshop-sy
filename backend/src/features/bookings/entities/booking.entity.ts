@@ -5,7 +5,7 @@ interface TripSnapshot {
     id: string
     fromCityId: string
     toCityId: string
-    company: string
+    company: { id: string; nameAr: string }
     departureTime: string
     arrivalTime: string
     duration: string
