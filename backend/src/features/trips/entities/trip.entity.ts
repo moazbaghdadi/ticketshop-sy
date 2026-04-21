@@ -1,16 +1,12 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 import { CompanyEntity } from '../../companies/entities/company.entity'
+import { TripSegmentPriceEntity } from './trip-segment-price.entity'
+import { TripStationEntity } from './trip-station.entity'
 
 @Entity('trips')
 export class TripEntity {
     @PrimaryGeneratedColumn('uuid')
     id!: string
-
-    @Column()
-    fromCityId!: string
-
-    @Column()
-    toCityId!: string
 
     @Index()
     @Column('uuid')
@@ -20,24 +16,13 @@ export class TripEntity {
     @JoinColumn({ name: 'companyId' })
     company!: CompanyEntity
 
-    @Column()
-    departureTime!: string
-
-    @Column()
-    arrivalTime!: string
-
-    @Column()
-    duration!: string
-
-    @Column('int')
-    durationMinutes!: number
-
-    @Column('int')
-    stops!: number
-
-    @Column('int')
-    price!: number
-
+    @Index()
     @Column('date')
     date!: string
+
+    @OneToMany(() => TripStationEntity, station => station.trip, { cascade: true })
+    stations!: TripStationEntity[]
+
+    @OneToMany(() => TripSegmentPriceEntity, price => price.trip, { cascade: true })
+    segmentPrices!: TripSegmentPriceEntity[]
 }

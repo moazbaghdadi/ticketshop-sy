@@ -57,6 +57,12 @@
           <span class="city-name">{{ trip.to.nameAr }}</span>
         </div>
       </div>
+      @if (viaStops(trip); as via) {
+        <div class="trip-via">
+          <span class="material-icons">route</span>
+          <span>عبر: {{ via }}</span>
+        </div>
+      }
       <div class="trip-footer">
         <div class="company">
           <span class="material-icons">directions_bus</span>

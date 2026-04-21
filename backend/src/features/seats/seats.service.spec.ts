@@ -18,20 +18,14 @@ describe('SeatsService', () => {
         createdAt: new Date('2026-01-01T00:00:00Z'),
     }
 
-    const mockTrip: TripEntity = {
+    const mockTrip: TripEntity = Object.assign(new TripEntity(), {
         id: 'trip-uuid',
-        fromCityId: 'damascus',
-        toCityId: 'aleppo',
         companyId: mockCompany.id,
         company: mockCompany,
-        departureTime: '06:00',
-        arrivalTime: '09:30',
-        duration: '3 ساعات و 30 دقيقة',
-        durationMinutes: 210,
-        stops: 1,
-        price: 45000,
         date: '2026-04-20',
-    }
+        stations: [],
+        segmentPrices: [],
+    })
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({

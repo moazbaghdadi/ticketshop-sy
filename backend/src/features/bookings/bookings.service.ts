@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto'
 import { Repository } from 'typeorm'
 import { CITY_MAP } from '../../common/data/cities.data'
 import { TripEntity } from '../trips/entities/trip.entity'
+import { findSegmentPrice, sortStations, toTripForPair } from '../trips/trip.mapper'
 import { CreateBookingDto } from './dto/create-booking.dto'
 import { BookingEntity } from './entities/booking.entity'
 
@@ -18,13 +19,25 @@ export class BookingsService {
     ) {}
 
     async createBooking(dto: CreateBookingDto): Promise<BookingResponse> {
-        // 1. Verify trip exists
-        const trip = await this.tripRepository.findOne({ where: { id: dto.tripId }, relations: { company: true } })
+        const trip = await this.tripRepository.findOne({
+            where: { id: dto.tripId },
+            relations: { company: true, stations: true, segmentPrices: true },
+        })
         if (!trip) {
             throw new NotFoundException(`Trip ${dto.tripId} not found`)
         }
 
-        // 2. Get existing bookings to check seat availability
+        const sorted = sortStations(trip.stations ?? [])
+        if (sorted.length < 2) {
+            throw new UnprocessableEntityException(`Trip ${trip.id} has no valid route`)
+        }
+        const origin = sorted[0]!
+        const terminus = sorted[sorted.length - 1]!
+        const pairPrice = findSegmentPrice(trip, origin.cityId, terminus.cityId)
+        if (pairPrice === null) {
+            throw new UnprocessableEntityException(`Trip ${trip.id} has no price for ${origin.cityId} → ${terminus.cityId}`)
+        }
+
         const existingBookings = await this.bookingRepository.find({ where: { tripId: dto.tripId } })
         const occupiedSeats = new Map<number, SeatGender>()
         for (const booking of existingBookings) {
@@ -33,14 +46,12 @@ export class BookingsService {
             }
         }
 
-        // 3. Validate requested seats are available
         for (const sel of dto.seatSelections) {
             if (occupiedSeats.has(sel.seatId)) {
                 throw new ConflictException(`Seat ${sel.seatId} is already occupied`)
             }
         }
 
-        // 4. Validate gender constraints
         for (const sel of dto.seatSelections) {
             const row = Math.floor((sel.seatId - 1) / 4)
             const col = (sel.seatId - 1) % 4
@@ -59,10 +70,8 @@ export class BookingsService {
             }
         }
 
-        // 5. Generate unique reference
         const reference = await this.generateUniqueReference()
 
-        // 6. Build seat details
         const seatDetails = dto.seatSelections.map(sel => ({
             id: sel.seatId,
             row: Math.floor((sel.seatId - 1) / 4),
@@ -70,25 +79,30 @@ export class BookingsService {
             gender: sel.gender,
         }))
 
-        // 7. Compute total price
-        const totalPrice = trip.price * dto.seatSelections.length
+        const tripDto = toTripForPair(trip, origin.cityId, terminus.cityId)
+        const totalPrice = pairPrice * dto.seatSelections.length
 
-        // 8. Persist booking
         const booking = this.bookingRepository.create({
             reference,
             tripId: trip.id,
             tripSnapshot: {
                 id: trip.id,
-                fromCityId: trip.fromCityId,
-                toCityId: trip.toCityId,
+                fromCityId: origin.cityId,
+                toCityId: terminus.cityId,
                 company: { id: trip.company.id, nameAr: trip.company.nameAr },
-                departureTime: trip.departureTime,
-                arrivalTime: trip.arrivalTime,
-                duration: trip.duration,
-                durationMinutes: trip.durationMinutes,
-                stops: trip.stops,
-                price: trip.price,
+                departureTime: tripDto.departureTime,
+                arrivalTime: tripDto.arrivalTime,
+                duration: tripDto.duration,
+                durationMinutes: tripDto.durationMinutes,
+                stops: tripDto.stops,
+                price: pairPrice,
                 date: trip.date,
+                stations: sorted.map(s => ({
+                    cityId: s.cityId,
+                    order: s.order,
+                    arrivalTime: s.arrivalTime,
+                    departureTime: s.departureTime,
+                })),
             },
             seatIds: dto.seatSelections.map(s => s.seatId),
             seatDetails,
@@ -131,6 +145,13 @@ export class BookingsService {
                 stops: snapshot.stops,
                 price: snapshot.price,
                 date: snapshot.date,
+                stations: snapshot.stations.map(s => ({
+                    cityId: s.cityId,
+                    nameAr: CITY_MAP.get(s.cityId)?.nameAr ?? s.cityId,
+                    order: s.order,
+                    arrivalTime: s.arrivalTime,
+                    departureTime: s.departureTime,
+                })),
             },
             seats: booking.seatIds,
             seatDetails: booking.seatDetails.map(d => ({

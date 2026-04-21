@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Trip } from '@ticketshop-sy/shared-models'
 import { Repository } from 'typeorm'
-import { CITY_MAP } from '../../common/data/cities.data'
 import { TripEntity } from './entities/trip.entity'
+import { sortStations, toTripForPair } from './trip.mapper'
 
 @Injectable()
 export class TripsService {
@@ -13,35 +13,35 @@ export class TripsService {
     ) {}
 
     async searchTrips(fromCityId: string, toCityId: string, date: string): Promise<Trip[]> {
+        if (fromCityId === toCityId) return []
+
         const entities = await this.tripRepository.find({
-            where: { fromCityId, toCityId, date },
-            order: { departureTime: 'ASC' },
-            relations: { company: true },
+            where: { date },
+            relations: { company: true, stations: true, segmentPrices: true },
         })
 
-        return entities.map(entity => this.toTrip(entity))
+        const results: Trip[] = []
+        for (const entity of entities) {
+            const sorted = sortStations(entity.stations ?? [])
+            const fromStation = sorted.find(s => s.cityId === fromCityId)
+            const toStation = sorted.find(s => s.cityId === toCityId)
+            if (!fromStation || !toStation) continue
+            if (fromStation.order >= toStation.order) continue
+            try {
+                results.push(toTripForPair(entity, fromCityId, toCityId))
+            } catch {
+                continue
+            }
+        }
+
+        results.sort((a, b) => a.departureTime.localeCompare(b.departureTime))
+        return results
     }
 
     async findById(id: string): Promise<TripEntity | null> {
-        return this.tripRepository.findOne({ where: { id }, relations: { company: true } })
-    }
-
-    private toTrip(entity: TripEntity): Trip {
-        const fromCity = CITY_MAP.get(entity.fromCityId)
-        const toCity = CITY_MAP.get(entity.toCityId)
-
-        return {
-            id: entity.id,
-            from: fromCity ?? { id: entity.fromCityId, nameAr: entity.fromCityId },
-            to: toCity ?? { id: entity.toCityId, nameAr: entity.toCityId },
-            company: { id: entity.company.id, nameAr: entity.company.nameAr },
-            departureTime: entity.departureTime,
-            arrivalTime: entity.arrivalTime,
-            duration: entity.duration,
-            durationMinutes: entity.durationMinutes,
-            stops: entity.stops,
-            price: entity.price,
-            date: entity.date,
-        }
+        return this.tripRepository.findOne({
+            where: { id },
+            relations: { company: true, stations: true, segmentPrices: true },
+        })
     }
 }

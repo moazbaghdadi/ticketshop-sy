@@ -8,6 +8,14 @@ export interface Company {
   nameAr: string;
 }
 
+export interface TripStation {
+  cityId: string;
+  nameAr: string;
+  order: number;
+  arrivalTime: string | null;
+  departureTime: string | null;
+}
+
 export interface Trip {
   id: string;
   from: City;
@@ -20,6 +28,7 @@ export interface Trip {
   stops: number;
   price: number;
   date: string;
+  stations: TripStation[];
 }
 
 export interface Seat {

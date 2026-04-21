@@ -1,6 +1,13 @@
 import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 import { TripEntity } from '../../trips/entities/trip.entity'
 
+interface SnapshotStation {
+    cityId: string
+    order: number
+    arrivalTime: string | null
+    departureTime: string | null
+}
+
 interface TripSnapshot {
     id: string
     fromCityId: string
@@ -13,6 +20,7 @@ interface TripSnapshot {
     stops: number
     price: number
     date: string
+    stations: SnapshotStation[]
 }
 
 interface SeatDetail {

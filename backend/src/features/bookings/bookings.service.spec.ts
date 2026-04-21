@@ -4,6 +4,8 @@ import { getRepositoryToken } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CompanyEntity } from '../companies/entities/company.entity'
 import { TripEntity } from '../trips/entities/trip.entity'
+import { TripSegmentPriceEntity } from '../trips/entities/trip-segment-price.entity'
+import { TripStationEntity } from '../trips/entities/trip-station.entity'
 import { BookingsService } from './bookings.service'
 import { CreateBookingDto } from './dto/create-booking.dto'
 import { BookingEntity } from './entities/booking.entity'
@@ -19,20 +21,33 @@ describe('BookingsService', () => {
         createdAt: new Date('2026-01-01T00:00:00Z'),
     }
 
-    const mockTrip: TripEntity = {
+    const mockTrip: TripEntity = Object.assign(new TripEntity(), {
         id: 'trip-uuid',
-        fromCityId: 'damascus',
-        toCityId: 'aleppo',
         companyId: mockCompany.id,
         company: mockCompany,
-        departureTime: '06:00',
-        arrivalTime: '09:30',
-        duration: '3 ساعات و 30 دقيقة',
-        durationMinutes: 210,
-        stops: 1,
-        price: 45000,
         date: '2026-04-20',
-    }
+        stations: [
+            Object.assign(new TripStationEntity(), {
+                cityId: 'damascus',
+                order: 0,
+                arrivalTime: null,
+                departureTime: '06:00',
+            }),
+            Object.assign(new TripStationEntity(), {
+                cityId: 'aleppo',
+                order: 1,
+                arrivalTime: '09:30',
+                departureTime: null,
+            }),
+        ] as TripStationEntity[],
+        segmentPrices: [
+            Object.assign(new TripSegmentPriceEntity(), {
+                fromCityId: 'damascus',
+                toCityId: 'aleppo',
+                price: 45000,
+            }),
+        ] as TripSegmentPriceEntity[],
+    })
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -71,40 +86,48 @@ describe('BookingsService', () => {
         paymentMethod: 'sham-cash',
     }
 
-    it('should create a booking successfully and embed company in snapshot', async () => {
+    it('creates a booking using the origin→terminus pair price', async () => {
         tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([])
-        bookingRepository.findOne.mockResolvedValue(null) // reference is unique
+        bookingRepository.findOne.mockResolvedValue(null)
 
         const result = await service.createBooking(validDto)
 
         expect(result.trip.from.nameAr).toBe('دمشق')
         expect(result.trip.to.nameAr).toBe('حلب')
         expect(result.trip.company).toEqual({ id: mockCompany.id, nameAr: 'الأهلية' })
+        expect(result.trip.stations).toHaveLength(2)
         expect(result.totalPrice).toBe(45000)
         expect(result.seats).toEqual([5])
         expect(result.status).toBe('confirmed')
         expect(result.reference).toMatch(/^SY-[0-9A-F]{6}$/)
     })
 
-    it('should throw NotFoundException for non-existent trip', async () => {
+    it('throws NotFoundException for non-existent trip', async () => {
         tripRepository.findOne.mockResolvedValue(null)
-
         await expect(service.createBooking(validDto)).rejects.toThrow(NotFoundException)
     })
 
-    it('should throw ConflictException for occupied seat', async () => {
+    it('throws UnprocessableEntityException when origin→terminus has no price', async () => {
+        const broken = Object.assign(new TripEntity(), {
+            ...mockTrip,
+            segmentPrices: [],
+        })
+        tripRepository.findOne.mockResolvedValue(broken)
+        await expect(service.createBooking(validDto)).rejects.toThrow(UnprocessableEntityException)
+    })
+
+    it('throws ConflictException for occupied seat', async () => {
         tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([
             {
                 seatDetails: [{ id: 5, row: 1, col: 0, gender: 'female' }],
             } as BookingEntity,
         ])
-
         await expect(service.createBooking(validDto)).rejects.toThrow(ConflictException)
     })
 
-    it('should throw UnprocessableEntityException for gender conflict', async () => {
+    it('throws UnprocessableEntityException for gender conflict', async () => {
         tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([
             {
@@ -121,7 +144,7 @@ describe('BookingsService', () => {
         await expect(service.createBooking(dto)).rejects.toThrow(UnprocessableEntityException)
     })
 
-    it('should allow same-gender booking on same side', async () => {
+    it('allows same-gender booking on same side', async () => {
         tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([
             {
@@ -140,7 +163,7 @@ describe('BookingsService', () => {
         expect(result.status).toBe('confirmed')
     })
 
-    it('should calculate total price correctly for multiple seats', async () => {
+    it('multiplies pair price by seat count', async () => {
         tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([])
         bookingRepository.findOne.mockResolvedValue(null)

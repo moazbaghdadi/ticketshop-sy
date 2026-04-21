@@ -97,6 +97,18 @@ export class TimetablePage {
     return `${stops} محطات`;
   }
 
+  viaStops(trip: Trip): string | null {
+    if (!trip.stations?.length) return null;
+    const sorted = [...trip.stations].sort((a, b) => a.order - b.order);
+    const fromIdx = sorted.findIndex(s => s.cityId === trip.from.id);
+    const toIdx = sorted.findIndex(s => s.cityId === trip.to.id);
+    if (fromIdx === -1 || toIdx === -1 || toIdx - fromIdx < 2) return null;
+    return sorted
+      .slice(fromIdx + 1, toIdx)
+      .map(s => s.nameAr)
+      .join('، ');
+  }
+
   formatPrice(price: number): string {
     return price.toLocaleString('ar-SY') + ' ل.س';
   }

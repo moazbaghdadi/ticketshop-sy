@@ -4,6 +4,7 @@ import { SeatGender } from '@ticketshop-sy/shared-models'
 import { Repository } from 'typeorm'
 import { BookingEntity } from '../features/bookings/entities/booking.entity'
 import { TripEntity } from '../features/trips/entities/trip.entity'
+import { findSegmentPrice, sortStations, toTripForPair } from '../features/trips/trip.mapper'
 import { seededRandom } from './trips-seeder.service'
 
 const OCCUPANCY_RATE = 0.3
@@ -27,7 +28,9 @@ export class BookingsSeederService {
     ) {}
 
     async seed(): Promise<number> {
-        const trips = await this.tripRepository.find({ relations: { company: true } })
+        const trips = await this.tripRepository.find({
+            relations: { company: true, stations: true, segmentPrices: true },
+        })
         this.logger.log(`Generating mock bookings for ${trips.length} trips...`)
 
         let totalBookings = 0
@@ -35,10 +38,16 @@ export class BookingsSeederService {
         let batch: Partial<BookingEntity>[] = []
 
         for (const trip of trips) {
+            const sorted = sortStations(trip.stations ?? [])
+            if (sorted.length < 2) continue
+            const origin = sorted[0]!
+            const terminus = sorted[sorted.length - 1]!
+            const pairPrice = findSegmentPrice(trip, origin.cityId, terminus.cityId)
+            if (pairPrice === null) continue
+
             const seed = trip.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
             const rand = seededRandom(seed)
 
-            // Generate occupied seats with gender pairing
             const occupiedSeats: SeatDetail[] = []
             let seatId = 1
             for (let row = 0; row < 10; row++) {
@@ -61,28 +70,34 @@ export class BookingsSeederService {
 
             if (occupiedSeats.length === 0) continue
 
-            // Create a single mock booking per trip with all occupied seats
+            const tripDto = toTripForPair(trip, origin.cityId, terminus.cityId)
             const mockRef = `MOCK-${trip.id.replace(/-/g, '').substring(0, 12).toUpperCase()}`
             batch.push({
                 reference: mockRef,
                 tripId: trip.id,
                 tripSnapshot: {
                     id: trip.id,
-                    fromCityId: trip.fromCityId,
-                    toCityId: trip.toCityId,
+                    fromCityId: origin.cityId,
+                    toCityId: terminus.cityId,
                     company: { id: trip.company.id, nameAr: trip.company.nameAr },
-                    departureTime: trip.departureTime,
-                    arrivalTime: trip.arrivalTime,
-                    duration: trip.duration,
-                    durationMinutes: trip.durationMinutes,
-                    stops: trip.stops,
-                    price: trip.price,
+                    departureTime: tripDto.departureTime,
+                    arrivalTime: tripDto.arrivalTime,
+                    duration: tripDto.duration,
+                    durationMinutes: tripDto.durationMinutes,
+                    stops: tripDto.stops,
+                    price: pairPrice,
                     date: trip.date,
+                    stations: sorted.map(s => ({
+                        cityId: s.cityId,
+                        order: s.order,
+                        arrivalTime: s.arrivalTime,
+                        departureTime: s.departureTime,
+                    })),
                 },
                 seatIds: occupiedSeats.map(s => s.id),
                 seatDetails: occupiedSeats,
                 paymentMethod: 'sham-cash',
-                totalPrice: trip.price * occupiedSeats.length,
+                totalPrice: pairPrice * occupiedSeats.length,
                 status: 'mock',
             })
             totalBookings++
