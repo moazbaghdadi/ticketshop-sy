@@ -13,7 +13,12 @@ async function bootstrap(): Promise<void> {
     app.setGlobalPrefix('api/v1')
 
     app.enableCors({
-        origin: configService.get<string>('CORS_ORIGINS')?.split(',') ?? ['http://localhost:4200'],
+        origin: configService
+            .get<string>('CORS_ORIGINS')
+            ?.split(',')
+            .map(o => o.trim()) ?? ['http://localhost:4200'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     })
 
     app.useGlobalFilters(new GlobalExceptionFilter())
