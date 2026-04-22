@@ -1,0 +1,263 @@
+<div class="reservations-page">
+  <header class="page-header">
+    <div>
+      <a class="back-link" routerLink="/trips">
+        <span class="material-icons">arrow_back</span>
+        الرحلات
+      </a>
+      <h1>حجوزات الرحلة</h1>
+    </div>
+    @if (detail(); as d) {
+      <div class="trip-meta">
+        <span>{{ formatDate(d.date) }}</span>
+        @if (d.cancelledAt) {
+          <span class="cancelled-chip">
+            <span class="material-icons">cancel</span>
+            ملغاة — {{ d.cancelledReason }}
+          </span>
+        }
+      </div>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="state">
+      <span class="material-icons spinning">sync</span>
+      <p>جارٍ التحميل...</p>
+    </div>
+  } @else if (error(); as err) {
+    <div class="state error">
+      <span class="material-icons">error_outline</span>
+      <p>{{ err }}</p>
+      <button class="secondary-btn" (click)="load()">إعادة المحاولة</button>
+    </div>
+  } @else if (detail(); as d) {
+    @if (overrideWarning(); as w) {
+      <div class="warning-banner">
+        <span class="material-icons">warning</span>
+        تم إنشاء الحجز مع تجاوز قيد الجنس: {{ w }}
+      </div>
+    }
+
+    <section class="layout-section">
+      <header class="section-header">
+        <h2>مخطط المقاعد</h2>
+        @if (!d.cancelledAt) {
+          <button class="primary-btn" (click)="openNewBooking()">
+            <span class="material-icons">add</span>
+            حجز جديد
+          </button>
+        }
+      </header>
+      <lib-seat-layout [seats]="seats()" [disabled]="true" [showLegend]="true" />
+    </section>
+
+    <section class="bookings-section">
+      <header class="section-header">
+        <h2>الحجوزات ({{ d.bookings.length }})</h2>
+      </header>
+      @if (d.bookings.length === 0) {
+        <p class="empty">لا توجد حجوزات على هذه الرحلة.</p>
+      } @else {
+        <div class="bookings-table">
+          <table>
+            <thead>
+              <tr>
+                <th>المرجع</th>
+                <th>المسافر</th>
+                <th>الهاتف</th>
+                <th>المقاعد</th>
+                <th>من</th>
+                <th>إلى</th>
+                <th>المبلغ</th>
+                <th>الحالة</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (b of d.bookings; track b.id) {
+                <tr [class.cancelled]="b.status === 'cancelled'">
+                  <td class="ltr">{{ b.reference }}</td>
+                  <td>{{ b.passengerName }}</td>
+                  <td class="ltr">{{ b.passengerPhone }}</td>
+                  <td>{{ b.seatIds.join('، ') }}</td>
+                  <td>{{ b.boardingCity }}</td>
+                  <td>{{ b.dropoffCity }}</td>
+                  <td class="price">{{ formatPrice(b.totalPrice) }}</td>
+                  <td>
+                    @if (b.status === 'cancelled') {
+                      <span class="badge cancelled-badge">ملغي</span>
+                    } @else {
+                      <span class="badge active-badge">مؤكد</span>
+                    }
+                  </td>
+                  <td class="actions">
+                    <button class="icon-btn" (click)="printBooking(b)" title="طباعة">
+                      <span class="material-icons">print</span>
+                    </button>
+                    <button
+                      class="icon-btn"
+                      [disabled]="!b.passengerEmail"
+                      (click)="emailBooking(b)"
+                      [title]="b.passengerEmail ? 'إرسال بالبريد' : 'لا يوجد بريد للمسافر'"
+                    >
+                      <span class="material-icons">email</span>
+                    </button>
+                  </td>
+                </tr>
+
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+
+  @if (printTarget(); as b) {
+    @if (detail(); as d) {
+      <div class="print-area">
+        <div class="ticket">
+          <h3>تذكرة رحلة</h3>
+          <div class="ticket-row"><span>المرجع:</span><strong class="ltr">{{ b.reference }}</strong></div>
+          <div class="ticket-row"><span>المسافر:</span><strong>{{ b.passengerName }}</strong></div>
+          <div class="ticket-row"><span>الهاتف:</span><strong class="ltr">{{ b.passengerPhone }}</strong></div>
+          <div class="ticket-row"><span>من:</span><strong>{{ b.boardingCity }}</strong></div>
+          <div class="ticket-row"><span>إلى:</span><strong>{{ b.dropoffCity }}</strong></div>
+          <div class="ticket-row"><span>التاريخ:</span><strong>{{ formatDate(d.date) }}</strong></div>
+          <div class="ticket-row"><span>المقاعد:</span><strong>{{ b.seatIds.join('، ') }}</strong></div>
+          <div class="ticket-row"><span>الإجمالي:</span><strong class="price">{{ formatPrice(b.totalPrice) }}</strong></div>
+        </div>
+      </div>
+    }
+  }
+
+  @if (showNewBooking()) {
+    <div class="modal-backdrop" (click)="closeNewBooking()">
+      <div class="modal booking-modal" (click)="$event.stopPropagation()">
+        <header>
+          <h2>حجز جديد</h2>
+          <button class="text-btn" (click)="closeNewBooking()">✕</button>
+        </header>
+
+        <div class="modal-body">
+          <div class="field">
+            <label>اختر المقاعد</label>
+            <lib-seat-layout
+              [seats]="seats()"
+              [selections]="newSelectionsList()"
+              (seatTap)="onSeatTap($event)"
+            />
+            @if (selectedSeatsSummary()) {
+              <div class="selected-seats">
+                <span>المختارة: {{ selectedSeatsSummary() }}</span>
+                <div class="chip-list">
+                  @for (entry of newSelectionsList(); track entry.seatId) {
+                    <span
+                      class="chip"
+                      [class.male]="entry.gender === 'male'"
+                      [class.female]="entry.gender === 'female'"
+                    >
+                      {{ entry.seatId }}
+                      <button class="chip-btn" (click)="toggleGender(entry.seatId)" title="تبديل الجنس">
+                        <span class="material-icons">swap_horiz</span>
+                      </button>
+                      <button class="chip-btn" (click)="removeSeat(entry.seatId)" title="إزالة">
+                        <span class="material-icons">close</span>
+                      </button>
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>من محطة</label>
+              <select
+                [ngModel]="newBoarding()"
+                (ngModelChange)="newBoarding.set($event)"
+              >
+                @for (s of detail()?.stations ?? []; track s.cityId) {
+                  <option [value]="s.cityId">{{ s.nameAr }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label>إلى محطة</label>
+              <select
+                [ngModel]="newDropoff()"
+                (ngModelChange)="newDropoff.set($event)"
+              >
+                @for (s of detail()?.stations ?? []; track s.cityId) {
+                  <option [value]="s.cityId">{{ s.nameAr }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>اسم المسافر</label>
+              <input
+                type="text"
+                [ngModel]="newName()"
+                (ngModelChange)="newName.set($event)"
+                maxlength="120"
+              />
+            </div>
+            <div class="field">
+              <label>الهاتف</label>
+              <input
+                type="tel"
+                [ngModel]="newPhone()"
+                (ngModelChange)="newPhone.set($event)"
+                maxlength="30"
+                class="ltr"
+              />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>البريد (اختياري)</label>
+              <input
+                type="email"
+                [ngModel]="newEmail()"
+                (ngModelChange)="newEmail.set($event)"
+                maxlength="180"
+                class="ltr"
+              />
+            </div>
+            <div class="field">
+              <label>طريقة الدفع</label>
+              <select
+                [ngModel]="newPayment()"
+                (ngModelChange)="newPayment.set($event)"
+              >
+                <option value="sham-cash">Sham Cash</option>
+                <option value="syriatel-cash">Syriatel Cash</option>
+              </select>
+            </div>
+          </div>
+
+          @if (createError(); as err) {
+            <div class="error-text">{{ err }}</div>
+          }
+        </div>
+
+        <footer class="modal-actions">
+          <button class="text-btn" (click)="closeNewBooking()" [disabled]="creating()">إلغاء</button>
+          <button class="primary-btn" [disabled]="!canSubmit()" (click)="submitBooking()">
+            @if (creating()) {
+              جارٍ الحفظ...
+            } @else {
+              حفظ الحجز
+            }
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
+</div>

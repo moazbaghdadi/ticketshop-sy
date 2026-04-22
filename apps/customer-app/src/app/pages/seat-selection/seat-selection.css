@@ -3,175 +3,6 @@
   padding-bottom: 150px;
 }
 
-/* ── Bus Layout ── */
-.bus-container {
-  background: var(--color-white);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 16px;
-  max-width: 320px;
-  margin: 0 auto;
-}
-
-.bus-front {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 4px 16px;
-  border-bottom: 2px dashed var(--color-border);
-  margin-bottom: 12px;
-}
-
-.steering {
-  font-size: 28px;
-  color: var(--color-text);
-}
-
-.driver-label {
-  font-size: 13px;
-  color: var(--color-text);
-}
-
-.bus-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 0.6fr 1fr 1fr;
-  gap: 8px;
-  padding: 8px 4px;
-}
-
-/* ── Seat Base ── */
-.seat {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border: 2px solid transparent;
-  min-height: 44px;
-  touch-action: manipulation;
-  transition:
-    transform 0.1s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.seat:active:not(:disabled) {
-  transform: scale(0.92);
-}
-
-/* Available */
-.seat.available {
-  background: #fff;
-  border-color: var(--color-seat-available);
-  color: var(--color-seat-available);
-}
-
-/* Tapped — awaiting gender */
-.seat.pending {
-  background: #fef3c7;
-  border-color: #f59e0b;
-  color: #92400e;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3);
-  animation: pulse-pending 1s ease-in-out infinite alternate;
-}
-
-@keyframes pulse-pending {
-  from {
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
-  }
-  to {
-    box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.1);
-  }
-}
-
-/* Pre-occupied by male → faded blue */
-.seat.occupied-male {
-  background: #bfdbfe;
-  border-color: #93c5fd;
-  color: #1e40af;
-  cursor: not-allowed;
-}
-
-/* Pre-occupied by female → faded pink */
-.seat.occupied-female {
-  background: #fbcfe8;
-  border-color: #f9a8d4;
-  color: #9d174d;
-  cursor: not-allowed;
-}
-
-/* Selected by user as male → vivid blue */
-.seat.selected-male {
-  background: var(--color-seat-male);
-  border-color: var(--color-seat-male);
-  color: #fff;
-}
-
-/* Selected by user as female → vivid pink */
-.seat.selected-female {
-  background: var(--color-seat-female);
-  border-color: var(--color-seat-female);
-  color: #fff;
-}
-
-/* Blocked — both genders conflict */
-.seat.blocked {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: #9ca3af;
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-/* ── Legend ── */
-.legend {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 20px;
-  flex-wrap: wrap;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--color-text);
-}
-
-.legend-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.legend-dot.available {
-  border: 2px solid var(--color-seat-available);
-  background: #fff;
-}
-
-.legend-dot.occupied-male {
-  background: #bfdbfe;
-  border: 2px solid #93c5fd;
-}
-
-.legend-dot.occupied-female {
-  background: #fbcfe8;
-  border: 2px solid #f9a8d4;
-}
-
-.legend-dot.blocked {
-  background: #f3f4f6;
-  border: 2px solid #d1d5db;
-}
-
-/* ── Bottom Bar ── */
 .bottom-bar {
   position: fixed;
   bottom: 0;
@@ -188,7 +19,6 @@
   gap: 10px;
 }
 
-/* Pending state */
 .pending-hint {
   display: flex;
   align-items: center;
@@ -243,7 +73,6 @@
   cursor: not-allowed;
 }
 
-/* Summary state */
 .summary {
   display: flex;
   flex-direction: column;

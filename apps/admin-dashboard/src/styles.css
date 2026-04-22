@@ -42,3 +42,64 @@ a {
 button {
   font-family: inherit;
 }
+
+.print-area {
+  display: none;
+}
+
+@media print {
+  body.printing-ticket {
+    background: #fff;
+  }
+
+  body.printing-ticket * {
+    visibility: hidden;
+  }
+
+  body.printing-ticket .print-area,
+  body.printing-ticket .print-area * {
+    visibility: visible;
+  }
+
+  body.printing-ticket .print-area {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    padding: 24px;
+  }
+
+  body.printing-ticket .print-area .ticket {
+    max-width: 500px;
+    margin: 0 auto;
+    color: #111827;
+    font-size: 14px;
+  }
+
+  body.printing-ticket .print-area .ticket h3 {
+    margin: 0 0 16px;
+    font-size: 22px;
+    text-align: center;
+  }
+
+  body.printing-ticket .print-area .ticket-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed #d1d5db;
+  }
+
+  body.printing-ticket .print-area .ltr {
+    direction: ltr;
+    font-family: monospace;
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

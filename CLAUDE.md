@@ -11,7 +11,7 @@ ticketshop-sy/
 │   └── admin-dashboard/     # Angular 21 travel-companies dashboard (port 4201)
 ├── libs/
 │   ├── shared-models/       # Shared TypeScript interfaces (e.g., TravelRoute)
-│   └── shared-ui/           # Shared Angular components (empty placeholder — seat layout to come)
+│   └── shared-ui/           # Shared standalone Angular components (SeatLayoutComponent)
 ├── backend/                 # Node.js/NestJS/TypeScript backend service
 └── package.json             # Root workspace management and helper scripts
 ```
@@ -27,8 +27,10 @@ ticketshop-sy/
 ### Admin Dashboard (apps/admin-dashboard)
 - **Framework:** Angular 21 standalone (mirrors customer-app). Runs on port **4201**.
 - **Auth:** `AuthService` persists JWT + user in `localStorage`; `authInterceptor` attaches the token and logs the user out on 401; `authGuard` protects routes.
-- **Shell:** sticky topbar + right-side sidebar (Arabic/RTL). Sidebar currently has one active link (`/dashboard`); later commits will enable Trips / New Trip / Reports.
-- **Routes:** `/login`, `/accept-invitation/:token`, guarded `/dashboard`.
+- **Shell:** sticky topbar + right-side sidebar (Arabic/RTL). Sidebar has active `/dashboard` and `/trips` links; New Trip / Reports are stubbed for later commits.
+- **Routes:** `/login`, `/accept-invitation/:token`, guarded `/dashboard`, `/trips`, `/trips/:id/reservations`.
+- **Trips page:** lists company trips with date filter + pagination; per-row Cancel (reason dialog) and View Reservations.
+- **Reservations page:** shows the 10x4 seat layout via `<lib-seat-layout>` (read-only preview), a bookings table with Print (browser `window.print()` via a `.print-area` element + `@media print` in `styles.css`) and Email buttons, and a "new booking" modal that uses the same layout component for seat selection, allows per-seat gender toggle, and surfaces any gender-override warning returned by the backend.
 
 ### Backend (backend)
 - **Runtime:** Node.js
@@ -42,6 +44,8 @@ ticketshop-sy/
 - **Trip cancellation:** `POST /api/v1/dashboard/trips/:id/cancel` `{ reason }` marks `TripEntity.cancelledAt/cancelledReason` and sets `status='cancelled'` on all of the trip's bookings; `POST /api/v1/dashboard/trips/:id/dismiss-cancellation` records a per-user dismissal in `cancelled_trip_dismissals` (unique on `(userId, tripId)`). `BookingResponse` exposes `tripCancelled`, `tripCancelledAt`, `tripCancelledReason` so the customer confirmation page renders a cancellation banner.
 - **Email:** `MailModule` exports a stub `EmailService.send({ to, subject, body })` that only logs; real SMTP comes later.
 - **Overview endpoint:** `GET /api/v1/dashboard/overview` returns `{ upcomingTrips[5], latestSales[10], balance, cancelledTrips }` scoped to the caller's company. Upcoming trips exclude cancelled ones; `cancelledTrips` covers the last 30 days and filters out any the current user has already dismissed.
+- **Dashboard trips list:** `GET /api/v1/dashboard/trips?date=&page=` (pageSize 20, sorted by date desc) and `GET /api/v1/dashboard/trips/:id/bookings` (trip detail + bookings). Both scoped to the caller's `companyId` (cross-company returns 403 from the `bookings` endpoint; the list endpoint simply filters).
+- **Dashboard bookings:** `POST /api/v1/dashboard/bookings` accepts the same `CreateBookingDto` as the customer endpoint but calls `BookingsService.createBookingInternal({ enforceGender: false })`; the response envelope is `{ data: BookingResponse, warning: string | null }` — a gender violation surfaces in `warning` without blocking. `POST /api/v1/dashboard/bookings/:reference/email` sends a stub email for the booking (400 if no `passengerEmail`, 403 cross-company).
 - **Env vars (new):** `JWT_SECRET`, `JWT_EXPIRES_IN` (default `7d`), `DASHBOARD_BASE_URL` (used by the invite CLI when printing the acceptance URL).
 - **Seeder:** `npm run seed` (from the `backend` workspace) rebuilds companies → trips → mock bookings.
 - **Invite CLI:** `npm run invite --workspace backend -- --email=<email> --companyId=<uuid>` inserts an invitation row and prints the acceptance URL.
@@ -50,6 +54,10 @@ ticketshop-sy/
 - **Purpose:** Shared TypeScript types and interfaces between frontend and backend.
 - `Trip.company` is a `{ id: string; nameAr: string }` — companies are first-class entities.
 - `Trip.stations` is a `TripStation[]` carrying the full ordered route (cityId, nameAr, order, arrivalTime, departureTime). `Trip.from/to/departureTime/arrivalTime/duration/durationMinutes/stops/price` are **derived for the searched pair** — `price` is the segment price for that exact pair; `stops` counts intermediates strictly between `from` and `to`.
+
+### Shared UI (libs/shared-ui)
+- Standalone Angular components consumed by both apps via the TypeScript path alias `@ticketshop-sy/shared-ui` → `libs/shared-ui/src/public-api.ts`.
+- `SeatLayoutComponent` (selector `lib-seat-layout`) renders the 10x4 bus grid and emits `seatTap`. Inputs: `seats`, `selections` (seatId+gender list), `pendingSeatId`, `disabled`, `showLegend`. CSS uses neutral custom-property fallbacks (`--color-seat-male`, etc.) so host apps can theme it via their own `:root` vars. Both the customer seat-selection page and the dashboard reservations page use it.
 
 ## Common Commands
 

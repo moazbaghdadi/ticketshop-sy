@@ -21,6 +21,15 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/dashboard/dashboard').then((m) => m.DashboardPage),
       },
+      {
+        path: 'trips',
+        loadComponent: () => import('./pages/trips/trips').then((m) => m.TripsPage),
+      },
+      {
+        path: 'trips/:id/reservations',
+        loadComponent: () =>
+          import('./pages/reservations/reservations').then((m) => m.ReservationsPage),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

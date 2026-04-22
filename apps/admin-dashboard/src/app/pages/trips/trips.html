@@ -1,0 +1,126 @@
+<div class="trips-page">
+  <header class="page-header">
+    <h1>الرحلات</h1>
+    <div class="filters">
+      <input
+        type="date"
+        [ngModel]="date()"
+        (ngModelChange)="date.set($event)"
+        class="date-input"
+        placeholder="التاريخ"
+      />
+      <button class="primary-btn" (click)="applyFilter()">تصفية</button>
+      @if (date()) {
+        <button class="text-btn" (click)="clearFilter()">مسح</button>
+      }
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="state">
+      <span class="material-icons spinning">sync</span>
+      <p>جارٍ التحميل...</p>
+    </div>
+  } @else if (error(); as err) {
+    <div class="state error">
+      <span class="material-icons">error_outline</span>
+      <p>{{ err }}</p>
+      <button class="secondary-btn" (click)="load()">إعادة المحاولة</button>
+    </div>
+  } @else if (result(); as data) {
+    @if (data.trips.length === 0) {
+      <div class="state">
+        <span class="material-icons">inbox</span>
+        <p>لا توجد رحلات</p>
+      </div>
+    } @else {
+      <div class="trips-table">
+        <table>
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>المسار</th>
+              <th>الإقلاع</th>
+              <th>الوصول</th>
+              <th>الحجوزات</th>
+              <th>المقاعد</th>
+              <th>الحالة</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (trip of data.trips; track trip.id) {
+              <tr [class.cancelled]="trip.cancelledAt">
+                <td>{{ formatDate(trip.date) }}</td>
+                <td class="route">{{ trip.fromCity }} → {{ trip.toCity }}</td>
+                <td class="ltr">{{ trip.departureTime || '—' }}</td>
+                <td class="ltr">{{ trip.arrivalTime || '—' }}</td>
+                <td>{{ trip.bookingsCount }}</td>
+                <td>{{ trip.seatsSold }}</td>
+                <td>
+                  @if (trip.cancelledAt) {
+                    <span class="badge cancelled-badge">ملغاة</span>
+                  } @else {
+                    <span class="badge active-badge">نشطة</span>
+                  }
+                </td>
+                <td class="actions">
+                  <a class="icon-btn" [routerLink]="['/trips', trip.id, 'reservations']" title="الحجوزات">
+                    <span class="material-icons">list_alt</span>
+                  </a>
+                  @if (!trip.cancelledAt) {
+                    <button class="icon-btn danger" (click)="openCancel(trip)" title="إلغاء">
+                      <span class="material-icons">cancel</span>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <button class="secondary-btn" [disabled]="page() === 1" (click)="prevPage()">السابق</button>
+        <span>الصفحة {{ page() }} من {{ totalPages(data.total, data.pageSize) }}</span>
+        <button
+          class="secondary-btn"
+          [disabled]="page() * data.pageSize >= data.total"
+          (click)="nextPage()"
+        >
+          التالي
+        </button>
+      </div>
+    }
+  }
+
+  @if (cancelTarget(); as trip) {
+    <div class="modal-backdrop" (click)="closeCancel()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h2>تأكيد إلغاء الرحلة</h2>
+        <p>{{ trip.fromCity }} → {{ trip.toCity }} بتاريخ {{ formatDate(trip.date) }}</p>
+        <label>سبب الإلغاء</label>
+        <textarea
+          [ngModel]="cancelReason()"
+          (ngModelChange)="cancelReason.set($event)"
+          rows="3"
+          placeholder="اكتب السبب..."
+        ></textarea>
+        <div class="modal-actions">
+          <button class="text-btn" (click)="closeCancel()" [disabled]="cancelling()">إلغاء</button>
+          <button
+            class="danger-btn"
+            (click)="confirmCancel()"
+            [disabled]="!cancelReason().trim() || cancelling()"
+          >
+            @if (cancelling()) {
+              جارٍ الإلغاء...
+            } @else {
+              تأكيد الإلغاء
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

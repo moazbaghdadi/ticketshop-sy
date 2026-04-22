@@ -1,0 +1,42 @@
+<div class="bus-container">
+  <div class="bus-front">
+    <span class="material-icons steering">radio_button_checked</span>
+    <span class="driver-label">السائق</span>
+  </div>
+
+  <div class="bus-grid">
+    @for (seat of seats(); track seat.id) {
+      <button
+        type="button"
+        [class]="getSeatClass(seat)"
+        [style.grid-row]="seat.row + 1"
+        [style.grid-column]="getGridColumn(seat.col)"
+        [disabled]="disabled() || seat.status === 'occupied' || getSeatClass(seat) === 'seat blocked'"
+        (click)="onTap(seat)"
+      >
+        {{ seat.id }}
+      </button>
+    }
+  </div>
+</div>
+
+@if (showLegend()) {
+  <div class="legend">
+    <div class="legend-item">
+      <span class="legend-dot available"></span>
+      <span>متاح</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot occupied-male"></span>
+      <span>ذكر</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot occupied-female"></span>
+      <span>أنثى</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-dot blocked"></span>
+      <span>ممنوع</span>
+    </div>
+  </div>
+}

@@ -25,6 +25,14 @@ export class BookingsService {
     ) {}
 
     async createBooking(dto: CreateBookingDto): Promise<BookingResponse> {
+        const { booking } = await this.createBookingInternal(dto, { enforceGender: true })
+        return booking
+    }
+
+    async createBookingInternal(
+        dto: CreateBookingDto,
+        opts: { enforceGender: boolean }
+    ): Promise<{ booking: BookingResponse; warning: string | null; trip: TripEntity }> {
         const trip = await this.tripRepository.findOne({
             where: { id: dto.tripId },
             relations: { company: true, stations: true, segmentPrices: true },
@@ -62,6 +70,7 @@ export class BookingsService {
             }
         }
 
+        let warning: string | null = null
         for (const sel of dto.seatSelections) {
             const row = Math.floor((sel.seatId - 1) / 4)
             const col = (sel.seatId - 1) % 4
@@ -73,9 +82,12 @@ export class BookingsService {
 
                 const neighborGender = occupiedSeats.get(neighborId)
                 if (neighborGender !== undefined && neighborGender !== sel.gender) {
-                    throw new UnprocessableEntityException(
-                        `Gender conflict: seat ${sel.seatId} (${sel.gender}) conflicts with occupied seat ${neighborId} (${neighborGender})`
-                    )
+                    if (opts.enforceGender) {
+                        throw new UnprocessableEntityException(
+                            `Gender conflict: seat ${sel.seatId} (${sel.gender}) conflicts with occupied seat ${neighborId} (${neighborGender})`
+                        )
+                    }
+                    warning = `مقعد ${sel.seatId} (${sel.gender === 'male' ? 'ذكر' : 'أنثى'}) بجانب مقعد ${neighborId} (${neighborGender === 'male' ? 'ذكر' : 'أنثى'})`
                 }
             }
         }
@@ -128,10 +140,15 @@ export class BookingsService {
 
         const saved = await this.bookingRepository.save(booking)
 
-        return this.toResponse(saved)
+        return { booking: this.toResponse(saved), warning, trip }
     }
 
     async findByReference(reference: string): Promise<BookingResponse> {
+        const booking = await this.findEntityByReference(reference)
+        return this.toResponse(booking)
+    }
+
+    async findEntityByReference(reference: string): Promise<BookingEntity> {
         const booking = await this.bookingRepository.findOne({
             where: { reference },
             relations: { trip: true },
@@ -139,11 +156,10 @@ export class BookingsService {
         if (!booking) {
             throw new NotFoundException(`Booking with reference ${reference} not found`)
         }
-
-        return this.toResponse(booking)
+        return booking
     }
 
-    private toResponse(booking: BookingEntity): BookingResponse {
+    toResponse(booking: BookingEntity): BookingResponse {
         const snapshot = booking.tripSnapshot
         const fromCity = CITY_MAP.get(snapshot.fromCityId)
         const toCity = CITY_MAP.get(snapshot.toCityId)

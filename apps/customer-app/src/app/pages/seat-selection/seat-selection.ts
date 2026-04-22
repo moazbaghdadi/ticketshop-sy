@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Seat, SeatGender } from '@ticketshop-sy/shared-models';
+import { SeatLayoutComponent, SeatLayoutSelection } from '@ticketshop-sy/shared-ui';
 import { ApiService } from '../../services/api.service';
 import { BookingService } from '../../services/booking.service';
 import { HeaderComponent } from '../../shared/header/header';
@@ -8,7 +9,7 @@ import { HeaderComponent } from '../../shared/header/header';
 @Component({
   selector: 'app-seat-selection',
   standalone: true,
-  imports: [HeaderComponent],
+  imports: [HeaderComponent, SeatLayoutComponent],
   templateUrl: './seat-selection.html',
   styleUrl: './seat-selection.css',
 })
@@ -19,10 +20,8 @@ export class SeatSelectionPage implements OnInit {
 
   seats = signal<Seat[]>([]);
 
-  /** Map of seatId → chosen gender for seats selected in this session */
   selectedSeatMap = signal<Record<number, SeatGender>>({});
 
-  /** Seat tapped by the user, awaiting gender assignment */
   pendingSeat = signal<Seat | null>(null);
 
   headerTitle = computed(() => {
@@ -31,6 +30,15 @@ export class SeatSelectionPage implements OnInit {
       ? `${trip.company.nameAr} - ${trip.from.nameAr} → ${trip.to.nameAr}`
       : 'اختيار المقاعد';
   });
+
+  selections = computed<SeatLayoutSelection[]>(() =>
+    Object.entries(this.selectedSeatMap()).map(([id, gender]) => ({
+      seatId: Number(id),
+      gender,
+    })),
+  );
+
+  pendingSeatId = computed(() => this.pendingSeat()?.id ?? null);
 
   selectedCount = computed(() => Object.keys(this.selectedSeatMap()).length);
 
@@ -54,11 +62,6 @@ export class SeatSelectionPage implements OnInit {
     });
   }
 
-  /**
-   * Returns true if assigning `gender` to `seat` would conflict with a
-   * pre-occupied neighbour on the same side-pair of the same row.
-   * Current-session selections are exempt (family/group exception).
-   */
   isGenderConflicting(seat: Seat, gender: SeatGender): boolean {
     const sideCols = seat.col < 2 ? [0, 1] : [2, 3];
     return this.seats().some(
@@ -72,24 +75,9 @@ export class SeatSelectionPage implements OnInit {
     );
   }
 
-  getSeatClass(seat: Seat): string {
-    if (seat.status === 'occupied') return `seat occupied-${seat.gender ?? 'male'}`;
-    const map = this.selectedSeatMap();
-    if (map[seat.id]) return `seat selected-${map[seat.id]}`;
-    if (this.pendingSeat()?.id === seat.id) return 'seat pending';
-    // Blocked only if BOTH genders conflict (seat is completely unavailable)
-    const bothBlocked =
-      this.isGenderConflicting(seat, 'male') && this.isGenderConflicting(seat, 'female');
-    if (bothBlocked) return 'seat blocked';
-    return 'seat available';
-  }
-
-  tapSeat(seat: Seat): void {
-    if (seat.status === 'occupied') return;
-
+  onSeatTap(seat: Seat): void {
     const map = this.selectedSeatMap();
 
-    // Tapping an already-selected seat deselects it
     if (map[seat.id]) {
       this.selectedSeatMap.update((m) => {
         const next = { ...m };
@@ -100,7 +88,6 @@ export class SeatSelectionPage implements OnInit {
       return;
     }
 
-    // Tapping the pending seat again cancels the selection
     if (this.pendingSeat()?.id === seat.id) {
       this.pendingSeat.set(null);
       return;
@@ -116,10 +103,6 @@ export class SeatSelectionPage implements OnInit {
 
     this.selectedSeatMap.update((m) => ({ ...m, [seat.id]: gender }));
     this.pendingSeat.set(null);
-  }
-
-  getGridColumn(col: number): number {
-    return col < 2 ? col + 1 : col + 2;
   }
 
   proceed(): void {

@@ -16,7 +16,8 @@
     "module": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@ticketshop-sy/shared-models": ["../../libs/shared-models/index.ts"]
+      "@ticketshop-sy/shared-models": ["../../libs/shared-models/index.ts"],
+      "@ticketshop-sy/shared-ui": ["../../libs/shared-ui/src/public-api.ts"]
     }
   },
   "angularCompilerOptions": {

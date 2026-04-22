@@ -1,14 +1,71 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
-import { CITY_IDS } from '../../common/data/cities.data'
+import { In, Repository } from 'typeorm'
+import { CITY_IDS, CITY_MAP } from '../../common/data/cities.data'
 import { BookingEntity } from '../bookings/entities/booking.entity'
 import { CreateDashboardTripDto } from './dto/create-dashboard-trip.dto'
 import { CancelledTripDismissalEntity } from './entities/cancelled-trip-dismissal.entity'
 import { TripSegmentPriceEntity } from './entities/trip-segment-price.entity'
 import { TripStationEntity } from './entities/trip-station.entity'
 import { TripEntity } from './entities/trip.entity'
-import { parseHm } from './trip.mapper'
+import { parseHm, sortStations } from './trip.mapper'
+
+export interface DashboardTripSummary {
+    id: string
+    date: string
+    fromCity: string
+    toCity: string
+    departureTime: string | null
+    arrivalTime: string | null
+    stationsCount: number
+    bookingsCount: number
+    seatsSold: number
+    cancelledAt: string | null
+    cancelledReason: string | null
+}
+
+export interface DashboardTripListResult {
+    trips: DashboardTripSummary[]
+    total: number
+    page: number
+    pageSize: number
+}
+
+export interface DashboardBookingSummary {
+    id: string
+    reference: string
+    passengerName: string
+    passengerPhone: string
+    passengerEmail: string | null
+    seatIds: number[]
+    seatDetails: { id: number; gender: 'male' | 'female' }[]
+    boardingStationId: string
+    boardingCity: string
+    dropoffStationId: string
+    dropoffCity: string
+    totalPrice: number
+    paymentMethod: string
+    status: string
+    createdAt: string
+}
+
+export interface DashboardTripDetail {
+    id: string
+    date: string
+    companyId: string
+    cancelledAt: string | null
+    cancelledReason: string | null
+    stations: {
+        cityId: string
+        nameAr: string
+        order: number
+        arrivalTime: string | null
+        departureTime: string | null
+    }[]
+    bookings: DashboardBookingSummary[]
+}
+
+const TRIP_PAGE_SIZE = 20
 
 @Injectable()
 export class DashboardTripsService {
@@ -20,6 +77,104 @@ export class DashboardTripsService {
         @InjectRepository(CancelledTripDismissalEntity)
         private readonly dismissalRepository: Repository<CancelledTripDismissalEntity>
     ) {}
+
+    async listTrips(companyId: string, opts: { date?: string; page?: number } = {}): Promise<DashboardTripListResult> {
+        const page = Math.max(1, opts.page ?? 1)
+        const where: Record<string, unknown> = { companyId }
+        if (opts.date) where['date'] = opts.date
+
+        const [trips, total] = await this.tripRepository.findAndCount({
+            where,
+            relations: { stations: true },
+            order: { date: 'DESC' },
+            take: TRIP_PAGE_SIZE,
+            skip: (page - 1) * TRIP_PAGE_SIZE,
+        })
+
+        const tripIds = trips.map(t => t.id)
+        const bookings = tripIds.length ? await this.bookingRepository.find({ where: { tripId: In(tripIds) } }) : []
+
+        const aggByTrip = new Map<string, { bookings: number; seats: number }>()
+        for (const b of bookings) {
+            if (b.status === 'cancelled') continue
+            const agg = aggByTrip.get(b.tripId) ?? { bookings: 0, seats: 0 }
+            agg.bookings++
+            agg.seats += b.seatIds.length
+            aggByTrip.set(b.tripId, agg)
+        }
+
+        const summaries: DashboardTripSummary[] = trips.map(trip => {
+            const sorted = sortStations(trip.stations ?? [])
+            const origin = sorted[0]
+            const terminus = sorted[sorted.length - 1]
+            const agg = aggByTrip.get(trip.id) ?? { bookings: 0, seats: 0 }
+            return {
+                id: trip.id,
+                date: trip.date,
+                fromCity: origin ? (CITY_MAP.get(origin.cityId)?.nameAr ?? origin.cityId) : '',
+                toCity: terminus ? (CITY_MAP.get(terminus.cityId)?.nameAr ?? terminus.cityId) : '',
+                departureTime: origin?.departureTime ?? null,
+                arrivalTime: terminus?.arrivalTime ?? null,
+                stationsCount: sorted.length,
+                bookingsCount: agg.bookings,
+                seatsSold: agg.seats,
+                cancelledAt: trip.cancelledAt ? trip.cancelledAt.toISOString() : null,
+                cancelledReason: trip.cancelledReason ?? null,
+            }
+        })
+
+        return { trips: summaries, total, page, pageSize: TRIP_PAGE_SIZE }
+    }
+
+    async getTripDetail(companyId: string, tripId: string): Promise<DashboardTripDetail> {
+        const trip = await this.tripRepository.findOne({
+            where: { id: tripId },
+            relations: { stations: true },
+        })
+        if (!trip) {
+            throw new NotFoundException(`Trip ${tripId} not found`)
+        }
+        if (trip.companyId !== companyId) {
+            throw new ForbiddenException('Cannot view a trip from another company')
+        }
+
+        const bookings = await this.bookingRepository.find({
+            where: { tripId },
+            order: { createdAt: 'DESC' },
+        })
+
+        return {
+            id: trip.id,
+            date: trip.date,
+            companyId: trip.companyId,
+            cancelledAt: trip.cancelledAt ? trip.cancelledAt.toISOString() : null,
+            cancelledReason: trip.cancelledReason ?? null,
+            stations: sortStations(trip.stations ?? []).map(s => ({
+                cityId: s.cityId,
+                nameAr: CITY_MAP.get(s.cityId)?.nameAr ?? s.cityId,
+                order: s.order,
+                arrivalTime: s.arrivalTime,
+                departureTime: s.departureTime,
+            })),
+            bookings: bookings.map(b => ({
+                id: b.id,
+                reference: b.reference,
+                passengerName: b.passengerName,
+                passengerPhone: b.passengerPhone,
+                passengerEmail: b.passengerEmail,
+                seatIds: b.seatIds,
+                seatDetails: b.seatDetails.map(d => ({ id: d.id, gender: d.gender })),
+                boardingStationId: b.boardingStationId,
+                boardingCity: CITY_MAP.get(b.boardingStationId)?.nameAr ?? b.boardingStationId,
+                dropoffStationId: b.dropoffStationId,
+                dropoffCity: CITY_MAP.get(b.dropoffStationId)?.nameAr ?? b.dropoffStationId,
+                totalPrice: b.totalPrice,
+                paymentMethod: b.paymentMethod,
+                status: b.status,
+                createdAt: b.createdAt.toISOString(),
+            })),
+        }
+    }
 
     async cancel(companyId: string, tripId: string, reason: string): Promise<TripEntity> {
         const trip = await this.tripRepository.findOne({ where: { id: tripId } })
