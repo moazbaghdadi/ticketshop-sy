@@ -1,0 +1,161 @@
+<div class="reports-page">
+  <header class="page-header">
+    <h1>التقارير</h1>
+  </header>
+
+  <section class="card filters-card">
+    <div class="filters">
+      <div class="field">
+        <label>من تاريخ</label>
+        <input type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" />
+      </div>
+      <div class="field">
+        <label>إلى تاريخ</label>
+        <input type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" />
+      </div>
+      <button class="primary-btn" [disabled]="!canGenerate()" (click)="generate()">
+        @if (loading()) {
+          جارٍ التحميل...
+        } @else {
+          إنشاء التقرير
+        }
+      </button>
+    </div>
+    @if (error(); as err) {
+      <p class="error-text">{{ err }}</p>
+    }
+  </section>
+
+  @if (report(); as r) {
+    <div class="report-actions">
+      <button class="secondary-btn" (click)="printReport()">
+        <span class="material-icons">print</span>
+        طباعة
+      </button>
+      <button class="secondary-btn" (click)="openEmailModal()">
+        <span class="material-icons">email</span>
+        إرسال بالبريد
+      </button>
+    </div>
+
+    <div class="report-area">
+      <section class="card totals-card">
+        <h2>الملخص</h2>
+        <div class="totals-grid">
+          <div class="total-item">
+            <span class="total-label">الحجوزات</span>
+            <strong>{{ r.totals.bookings }}</strong>
+          </div>
+          <div class="total-item">
+            <span class="total-label">المقاعد</span>
+            <strong>{{ r.totals.seats }}</strong>
+          </div>
+          <div class="total-item">
+            <span class="total-label">الرحلات</span>
+            <strong>{{ r.totals.trips }}</strong>
+          </div>
+          <div class="total-item revenue">
+            <span class="total-label">الإيرادات</span>
+            <strong>{{ formatPrice(r.totals.revenue) }}</strong>
+          </div>
+        </div>
+        <p class="range">المدى: {{ formatDate(r.from) }} — {{ formatDate(r.to) }}</p>
+      </section>
+
+      <section class="card">
+        <h2>حسب اليوم</h2>
+        @if (r.perDay.length === 0) {
+          <p class="empty">لا توجد بيانات ضمن المدى المحدد.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>الحجوزات</th>
+                  <th>المقاعد</th>
+                  <th>الإيرادات</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of r.perDay; track row.date) {
+                  <tr>
+                    <td>{{ formatDate(row.date) }}</td>
+                    <td>{{ row.bookings }}</td>
+                    <td>{{ row.seats }}</td>
+                    <td class="price">{{ formatPrice(row.revenue) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <section class="card">
+        <h2>حسب المسار</h2>
+        @if (r.perRoute.length === 0) {
+          <p class="empty">لا توجد بيانات ضمن المدى المحدد.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>المسار</th>
+                  <th>الحجوزات</th>
+                  <th>المقاعد</th>
+                  <th>الإيرادات</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of r.perRoute; track row.fromCityId + '|' + row.toCityId) {
+                  <tr>
+                    <td>{{ row.fromCity }} → {{ row.toCity }}</td>
+                    <td>{{ row.bookings }}</td>
+                    <td>{{ row.seats }}</td>
+                    <td class="price">{{ formatPrice(row.revenue) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    </div>
+  }
+
+  @if (showEmailModal()) {
+    <div class="modal-backdrop" (click)="closeEmailModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <header>
+          <h2>إرسال التقرير بالبريد</h2>
+          <button class="text-btn" (click)="closeEmailModal()">✕</button>
+        </header>
+        <div class="modal-body">
+          <div class="field">
+            <label>البريد الإلكتروني</label>
+            <input
+              type="email"
+              class="ltr"
+              [ngModel]="emailRecipient()"
+              (ngModelChange)="emailRecipient.set($event)"
+            />
+          </div>
+          @if (sendError(); as err) {
+            <p class="error-text">{{ err }}</p>
+          }
+        </div>
+        <footer class="modal-actions">
+          <button class="text-btn" (click)="closeEmailModal()" [disabled]="sending()">إلغاء</button>
+          <button
+            class="primary-btn"
+            [disabled]="!emailRecipient().trim() || sending()"
+            (click)="sendEmail()"
+          >
+            @if (sending()) { جارٍ الإرسال... } @else { إرسال }
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
+</div>

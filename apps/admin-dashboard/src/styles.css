@@ -93,6 +93,35 @@ button {
     direction: ltr;
     font-family: monospace;
   }
+
+  body.printing-report {
+    background: #fff;
+  }
+
+  body.printing-report * {
+    visibility: hidden;
+  }
+
+  body.printing-report .report-area,
+  body.printing-report .report-area * {
+    visibility: visible;
+  }
+
+  body.printing-report .report-area {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    padding: 24px;
+    color: #111827;
+    overflow: visible;
+  }
+
+  body.printing-report .report-area .card {
+    box-shadow: none !important;
+    border: 1px solid #d1d5db;
+    margin-bottom: 16px;
+    page-break-inside: avoid;
+  }
 }
 
 .spinning {

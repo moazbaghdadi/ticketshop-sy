@@ -9,10 +9,12 @@ import { DashboardBookingsController } from './dashboard-bookings.controller'
 import { DashboardBookingsService } from './dashboard-bookings.service'
 import { DashboardOverviewController } from './dashboard-overview.controller'
 import { DashboardOverviewService } from './dashboard-overview.service'
+import { DashboardReportsController } from './dashboard-reports.controller'
+import { DashboardReportsService } from './dashboard-reports.service'
 
 @Module({
     imports: [TypeOrmModule.forFeature([TripEntity, BookingEntity, CancelledTripDismissalEntity]), BookingsModule, MailModule],
-    controllers: [DashboardOverviewController, DashboardBookingsController],
-    providers: [DashboardOverviewService, DashboardBookingsService],
+    controllers: [DashboardOverviewController, DashboardBookingsController, DashboardReportsController],
+    providers: [DashboardOverviewService, DashboardBookingsService, DashboardReportsService],
 })
 export class DashboardModule {}

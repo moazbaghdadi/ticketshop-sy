@@ -34,6 +34,10 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/reservations/reservations').then((m) => m.ReservationsPage),
       },
+      {
+        path: 'reports',
+        loadComponent: () => import('./pages/reports/reports').then((m) => m.ReportsPage),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },
