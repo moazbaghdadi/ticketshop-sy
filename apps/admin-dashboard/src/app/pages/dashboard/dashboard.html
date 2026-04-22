@@ -1,12 +1,111 @@
 <div class="dashboard-page">
-  <h1>مرحبًا بك في لوحة التحكم</h1>
-  <p class="subtitle">سيظهر هنا ملخص الرحلات والمبيعات والتنبيهات قريبًا.</p>
+  <h1>الرئيسية</h1>
 
-  <div class="placeholder-card">
-    <span class="material-icons">bar_chart</span>
-    <div>
-      <strong>الصفحة قيد الإنشاء</strong>
-      <p>البطاقات الإحصائية ستضاف في الخطوة التالية من التطوير.</p>
+  @if (loading()) {
+    <div class="loading-state">
+      <span class="material-icons spinning">sync</span>
+      <p>جارٍ تحميل البيانات...</p>
     </div>
-  </div>
+  } @else if (error(); as err) {
+    <div class="error-state">
+      <span class="material-icons">error_outline</span>
+      <p>{{ err }}</p>
+      <button class="secondary-btn" (click)="load()">إعادة المحاولة</button>
+    </div>
+  } @else if (overview(); as data) {
+    @if (data.cancelledTrips.length > 0) {
+      <section class="cancel-section">
+        <h2>
+          <span class="material-icons">warning</span>
+          رحلات ملغاة
+        </h2>
+        <div class="cancel-list">
+          @for (trip of data.cancelledTrips; track trip.id) {
+            <div class="cancel-card">
+              <div class="cancel-info">
+                <strong>{{ trip.fromCity }} → {{ trip.toCity }}</strong>
+                <span class="cancel-date">بتاريخ {{ trip.date }}</span>
+                <span class="cancel-reason">السبب: {{ trip.cancelledReason }}</span>
+              </div>
+              <button class="dismiss-btn" (click)="dismiss(trip)">
+                <span class="material-icons">close</span>
+                إخفاء
+              </button>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <div class="cards-grid">
+      <section class="card">
+        <header>
+          <span class="material-icons">account_balance_wallet</span>
+          <h2>الرصيد الحالي</h2>
+        </header>
+        <div class="balance-value">{{ formatPrice(data.balance) }}</div>
+        <p class="balance-note">مجموع المبيعات المؤكدة</p>
+      </section>
+
+      <section class="card">
+        <header>
+          <span class="material-icons">directions_bus</span>
+          <h2>الرحلات القادمة</h2>
+        </header>
+        @if (data.upcomingTrips.length === 0) {
+          <p class="empty">لا توجد رحلات قادمة</p>
+        } @else {
+          <ul class="trip-list">
+            @for (trip of data.upcomingTrips; track trip.id) {
+              <li>
+                <div class="trip-route">
+                  <strong>{{ trip.fromCity }} → {{ trip.toCity }}</strong>
+                  <span>{{ trip.date }} · {{ trip.departureTime || '—' }}</span>
+                </div>
+                <div class="trip-stats">
+                  <span>{{ trip.seatsSold }} مقعد</span>
+                  <span class="muted">{{ trip.bookingsCount }} حجز</span>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section class="card wide">
+        <header>
+          <span class="material-icons">receipt_long</span>
+          <h2>آخر المبيعات</h2>
+        </header>
+        @if (data.latestSales.length === 0) {
+          <p class="empty">لا توجد مبيعات بعد</p>
+        } @else {
+          <table class="sales-table">
+            <thead>
+              <tr>
+                <th>الرقم</th>
+                <th>المسافر</th>
+                <th>المقاعد</th>
+                <th>تاريخ الرحلة</th>
+                <th>المبلغ</th>
+                <th>تاريخ الحجز</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (sale of data.latestSales; track sale.reference) {
+                <tr>
+                  <td class="ltr">{{ sale.reference }}</td>
+                  <td>{{ sale.passengerName }}</td>
+                  <td>{{ sale.seatsCount }}</td>
+                  <td>{{ sale.tripDate }}</td>
+                  <td class="price">{{ formatPrice(sale.totalPrice) }}</td>
+                  <td>{{ formatDate(sale.createdAt) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </section>
+    </div>
+  }
 </div>
