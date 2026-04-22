@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { InvitationEntity } from '../features/auth/entities/invitation.entity'
+import { UserEntity } from '../features/auth/entities/user.entity'
 import { BookingEntity } from '../features/bookings/entities/booking.entity'
 import { CompanyEntity } from '../features/companies/entities/company.entity'
 import { CancelledTripDismissalEntity } from '../features/trips/entities/cancelled-trip-dismissal.entity'
@@ -22,6 +24,8 @@ import { TripsSeederService } from './trips-seeder.service'
                 type: 'postgres' as const,
                 url: config.get<string>('DATABASE_URL', 'postgres://postgres:postgres@localhost:5432/postgres'),
                 entities: [
+                    UserEntity,
+                    InvitationEntity,
                     CompanyEntity,
                     TripEntity,
                     TripStationEntity,
