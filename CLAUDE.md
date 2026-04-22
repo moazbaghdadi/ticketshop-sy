@@ -27,10 +27,11 @@ ticketshop-sy/
 ### Admin Dashboard (apps/admin-dashboard)
 - **Framework:** Angular 21 standalone (mirrors customer-app). Runs on port **4201**.
 - **Auth:** `AuthService` persists JWT + user in `localStorage`; `authInterceptor` attaches the token and logs the user out on 401; `authGuard` protects routes.
-- **Shell:** sticky topbar + right-side sidebar (Arabic/RTL). Sidebar has active `/dashboard` and `/trips` links; New Trip / Reports are stubbed for later commits.
-- **Routes:** `/login`, `/accept-invitation/:token`, guarded `/dashboard`, `/trips`, `/trips/:id/reservations`.
+- **Shell:** sticky topbar + right-side sidebar (Arabic/RTL). Sidebar has active `/dashboard`, `/trips`, and `/trips/new` links; Reports is stubbed for C10.
+- **Routes:** `/login`, `/accept-invitation/:token`, guarded `/dashboard`, `/trips`, `/trips/new`, `/trips/:id/reservations`.
 - **Trips page:** lists company trips with date filter + pagination; per-row Cancel (reason dialog) and View Reservations.
 - **Reservations page:** shows the 10x4 seat layout via `<lib-seat-layout>` (read-only preview), a bookings table with Print (browser `window.print()` via a `.print-area` element + `@media print` in `styles.css`) and Email buttons, and a "new booking" modal that uses the same layout component for seat selection, allows per-seat gender toggle, and surfaces any gender-override warning returned by the backend.
+- **New Trip page (`/trips/new`):** date picker + stations editor (city dropdown, arrival/departure times, move up/down, remove, add) + auto-rendered upper-triangle pair-pricing list (one row per (i&lt;j) station pair). The `availableCities()` helper prevents selecting the same city twice. Client-side validation mirrors `DashboardTripsService.validate()` — ≥2 stations, no duplicates, first-departure/last-arrival required, monotonic times, every upper-triangle price &gt; 0 — and any backend BadRequestException is surfaced verbatim. On success, navigates back to `/trips`.
 
 ### Backend (backend)
 - **Runtime:** Node.js

@@ -19,11 +19,16 @@
         <span class="material-icons">dashboard</span>
         الرئيسية
       </a>
-      <a routerLink="/trips" routerLinkActive="active" class="nav-item">
+      <a
+        routerLink="/trips"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="nav-item"
+      >
         <span class="material-icons">directions_bus</span>
         الرحلات
       </a>
-      <a class="nav-item disabled">
+      <a routerLink="/trips/new" routerLinkActive="active" class="nav-item">
         <span class="material-icons">add_circle</span>
         رحلة جديدة
       </a>

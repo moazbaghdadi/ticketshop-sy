@@ -68,6 +68,17 @@ export interface CreateDashboardBookingRequest {
   passenger: { name: string; phone: string; email?: string | null };
 }
 
+export interface CreateDashboardTripRequest {
+  date: string;
+  stations: {
+    cityId: string;
+    order: number;
+    arrivalTime: string | null;
+    departureTime: string | null;
+  }[];
+  segmentPrices: { fromCityId: string; toCityId: string; price: number }[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class TripsService {
   private http = inject(HttpClient);
@@ -100,6 +111,13 @@ export class TripsService {
   ): Observable<{ data: BookingResponse; warning: string | null }> {
     return this.http.post<{ data: BookingResponse; warning: string | null }>(
       `${environment.apiUrl}/dashboard/bookings`,
+      body,
+    );
+  }
+
+  createTrip(body: CreateDashboardTripRequest): Observable<{ data: { id: string } }> {
+    return this.http.post<{ data: { id: string } }>(
+      `${environment.apiUrl}/dashboard/trips`,
       body,
     );
   }

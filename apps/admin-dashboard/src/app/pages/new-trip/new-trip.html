@@ -1,0 +1,152 @@
+<div class="new-trip-page">
+  <header class="page-header">
+    <div>
+      <a class="back-link" routerLink="/trips">
+        <span class="material-icons">arrow_back</span>
+        الرحلات
+      </a>
+      <h1>رحلة جديدة</h1>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="field">
+      <label>تاريخ الرحلة</label>
+      <input
+        type="date"
+        [ngModel]="date()"
+        (ngModelChange)="date.set($event)"
+      />
+    </div>
+  </section>
+
+  <section class="card">
+    <header class="section-header">
+      <h2>المحطات</h2>
+      <button class="secondary-btn" (click)="addStation()">
+        <span class="material-icons">add</span>
+        إضافة محطة
+      </button>
+    </header>
+
+    <div class="stations">
+      @for (s of stations(); track $index; let i = $index) {
+        <div class="station-row">
+          <div class="row-index">{{ i + 1 }}</div>
+          <div class="field">
+            <label>المدينة</label>
+            <select
+              [ngModel]="s.cityId"
+              (ngModelChange)="setCity(i, $event)"
+            >
+              <option value="">اختر المدينة</option>
+              @for (c of availableCities(i); track c.id) {
+                <option [value]="c.id">{{ c.nameAr }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>وقت الوصول</label>
+            <input
+              type="time"
+              [ngModel]="s.arrivalTime"
+              (ngModelChange)="setArrival(i, $event)"
+              [disabled]="i === 0"
+            />
+          </div>
+          <div class="field">
+            <label>وقت الانطلاق</label>
+            <input
+              type="time"
+              [ngModel]="s.departureTime"
+              (ngModelChange)="setDeparture(i, $event)"
+              [disabled]="i === stations().length - 1"
+            />
+          </div>
+          <div class="row-actions">
+            <button
+              class="icon-btn"
+              [disabled]="i === 0"
+              (click)="moveUp(i)"
+              title="تحريك للأعلى"
+            >
+              <span class="material-icons">arrow_upward</span>
+            </button>
+            <button
+              class="icon-btn"
+              [disabled]="i === stations().length - 1"
+              (click)="moveDown(i)"
+              title="تحريك للأسفل"
+            >
+              <span class="material-icons">arrow_downward</span>
+            </button>
+            <button
+              class="icon-btn danger"
+              [disabled]="stations().length <= 2"
+              (click)="removeStation(i)"
+              title="حذف"
+            >
+              <span class="material-icons">delete</span>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="card">
+    <header class="section-header">
+      <h2>أسعار المسارات</h2>
+    </header>
+    @if (pairs().length === 0) {
+      <p class="empty">أكمل اختيار المدن لعرض مصفوفة الأسعار.</p>
+    } @else {
+      <div class="prices-grid">
+        @for (p of pairs(); track p.key) {
+          <div class="price-row">
+            <span class="price-label">
+              {{ cityName(p.from.cityId) }}
+              <span class="material-icons arrow-icon">arrow_back</span>
+              {{ cityName(p.to.cityId) }}
+            </span>
+            <div class="price-input">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                [ngModel]="priceFor(p.key)"
+                (ngModelChange)="setPrice(p.key, $event)"
+                placeholder="0"
+              />
+              <span class="currency">ل.س</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  @if (validationError(); as err) {
+    <div class="error-banner">
+      <span class="material-icons">error_outline</span>
+      {{ err }}
+    </div>
+  }
+  @if (serverError(); as err) {
+    <div class="error-banner">
+      <span class="material-icons">error_outline</span>
+      {{ err }}
+    </div>
+  }
+
+  <footer class="page-actions">
+    <a routerLink="/trips" class="text-btn">إلغاء</a>
+    <button class="primary-btn" [disabled]="submitting()" (click)="submit()">
+      @if (submitting()) {
+        جارٍ الحفظ...
+      } @else {
+        حفظ الرحلة
+      }
+    </button>
+  </footer>
+</div>
