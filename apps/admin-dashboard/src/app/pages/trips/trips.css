@@ -189,6 +189,7 @@
 .trips-table td.ltr {
   direction: ltr;
   font-family: monospace;
+  text-align: right;
 }
 
 .trips-table tr.cancelled {

@@ -162,6 +162,7 @@
 .bookings-table td.ltr {
   direction: ltr;
   font-family: monospace;
+  text-align: right;
 }
 
 .bookings-table td.route {

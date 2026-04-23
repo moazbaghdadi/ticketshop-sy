@@ -220,6 +220,7 @@
 .sales-table td.ltr {
   direction: ltr;
   font-family: monospace;
+  text-align: right;
 }
 
 .sales-table td.price {
