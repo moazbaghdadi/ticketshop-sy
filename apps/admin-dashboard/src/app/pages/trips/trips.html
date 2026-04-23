@@ -154,7 +154,7 @@
               <tr [class.cancelled]="trip.cancelledAt">
                 <td>{{ formatDate(trip.date) }}</td>
                 <td class="route">
-                  {{ trip.fromCity }} → {{ trip.toCity }}
+                  {{ trip.fromCity }} ← {{ trip.toCity }}
                   @if (trip.stationsCount > 2) {
                     <span class="stations-hint" [title]="'عدد المحطات: ' + trip.stationsCount">
                       ({{ trip.stationsCount }} محطات)
@@ -206,7 +206,7 @@
     <div class="modal-backdrop" (click)="closeCancel()">
       <div class="modal" (click)="$event.stopPropagation()">
         <h2>تأكيد إلغاء الرحلة</h2>
-        <p>{{ trip.fromCity }} → {{ trip.toCity }} بتاريخ {{ formatDate(trip.date) }}</p>
+        <p>{{ trip.fromCity }} ← {{ trip.toCity }} بتاريخ {{ formatDate(trip.date) }}</p>
         <label>سبب الإلغاء</label>
         <textarea
           [ngModel]="cancelReason()"

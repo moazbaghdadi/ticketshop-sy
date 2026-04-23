@@ -93,11 +93,11 @@ export class ReportsPage implements OnInit {
   }
 
   formatPrice(value: number): string {
-    return value.toLocaleString('ar-SY') + ' ل.س';
+    return value.toLocaleString('ar-SY-u-nu-latn') + ' ل.س';
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('ar-SY', {
+    return new Date(iso).toLocaleDateString('ar-SY-u-nu-latn', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

@@ -163,7 +163,7 @@ export class TripsPage implements OnInit {
   }
 
   formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('ar-SY', {
+    return new Date(date).toLocaleDateString('ar-SY-u-nu-latn', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

@@ -23,7 +23,7 @@
           @for (trip of data.cancelledTrips; track trip.id) {
             <div class="cancel-card">
               <div class="cancel-info">
-                <strong>{{ trip.fromCity }} → {{ trip.toCity }}</strong>
+                <strong>{{ trip.fromCity }} ← {{ trip.toCity }}</strong>
                 <span class="cancel-date">بتاريخ {{ trip.date }}</span>
                 <span class="cancel-reason">السبب: {{ trip.cancelledReason }}</span>
               </div>
@@ -59,7 +59,7 @@
             @for (trip of data.upcomingTrips; track trip.id) {
               <li>
                 <div class="trip-route">
-                  <strong>{{ trip.fromCity }} → {{ trip.toCity }}</strong>
+                  <strong>{{ trip.fromCity }} ← {{ trip.toCity }}</strong>
                   <span>{{ trip.date }} · {{ trip.departureTime || '—' }}</span>
                 </div>
                 <div class="trip-stats">

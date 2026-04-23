@@ -110,7 +110,7 @@
               <tbody>
                 @for (row of r.perRoute; track row.fromCityId + '|' + row.toCityId) {
                   <tr>
-                    <td>{{ row.fromCity }} → {{ row.toCity }}</td>
+                    <td>{{ row.fromCity }} ← {{ row.toCity }}</td>
                     <td>{{ row.bookings }}</td>
                     <td>{{ row.seats }}</td>
                     <td class="price">{{ formatPrice(row.revenue) }}</td>

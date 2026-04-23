@@ -67,6 +67,6 @@ export class PaymentPage {
   }
 
   formatPrice(price: number): string {
-    return price.toLocaleString('ar-SY') + ' ل.س';
+    return price.toLocaleString('ar-SY-u-nu-latn') + ' ل.س';
   }
 }

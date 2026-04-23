@@ -32,7 +32,7 @@ export class TimetablePage {
       d.setDate(d.getDate() + i);
       return {
         iso: d.toISOString().split('T')[0],
-        dayName: d.toLocaleDateString('ar-SY', { weekday: 'short' }),
+        dayName: d.toLocaleDateString('ar-SY-u-nu-latn', { weekday: 'short' }),
         dayNum: d.getDate(),
       };
     });
@@ -110,6 +110,6 @@ export class TimetablePage {
   }
 
   formatPrice(price: number): string {
-    return price.toLocaleString('ar-SY') + ' ل.س';
+    return price.toLocaleString('ar-SY-u-nu-latn') + ' ل.س';
   }
 }

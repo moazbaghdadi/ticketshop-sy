@@ -173,7 +173,7 @@ export class NewTripPage {
     for (const pair of this.pairs()) {
       const price = this.priceFor(pair.key);
       if (price === null || price <= 0) {
-        return `أدخل سعراً موجباً للمسار ${this.cityName(pair.from.cityId)} → ${this.cityName(pair.to.cityId)}`;
+        return `أدخل سعراً موجباً للمسار ${this.cityName(pair.from.cityId)} ← ${this.cityName(pair.to.cityId)}`;
       }
     }
 

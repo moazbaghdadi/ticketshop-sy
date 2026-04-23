@@ -27,7 +27,7 @@ export class SeatSelectionPage implements OnInit {
   headerTitle = computed(() => {
     const trip = this.booking.selectedTrip();
     return trip
-      ? `${trip.company.nameAr} - ${trip.from.nameAr} → ${trip.to.nameAr}`
+      ? `${trip.company.nameAr} - ${trip.from.nameAr} ← ${trip.to.nameAr}`
       : 'اختيار المقاعد';
   });
 
@@ -113,6 +113,6 @@ export class SeatSelectionPage implements OnInit {
   }
 
   formatPrice(price: number): string {
-    return price.toLocaleString('ar-SY') + ' ل.س';
+    return price.toLocaleString('ar-SY-u-nu-latn') + ' ل.س';
   }
 }

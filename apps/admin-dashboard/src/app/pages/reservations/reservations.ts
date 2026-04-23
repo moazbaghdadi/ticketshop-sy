@@ -221,11 +221,11 @@ export class ReservationsPage implements OnInit {
   }
 
   formatPrice(price: number): string {
-    return price.toLocaleString('ar-SY') + ' ل.س';
+    return price.toLocaleString('ar-SY-u-nu-latn') + ' ل.س';
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('ar-SY', {
+    return new Date(iso).toLocaleDateString('ar-SY-u-nu-latn', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
