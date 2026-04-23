@@ -83,13 +83,13 @@ export class DashboardBookingsService {
 
         const qb = this.bookingRepository
             .createQueryBuilder('booking')
-            .innerJoin(TripEntity, 'trip', 'trip.id = booking."tripId"')
+            .innerJoin(TripEntity, 'trip', 'trip.id = booking.tripId')
             .where('trip.companyId = :companyId', { companyId })
 
         if (opts.query) {
             const like = `%${opts.query.trim()}%`
             qb.andWhere(
-                '(booking.reference ILIKE :like OR booking."passengerName" ILIKE :like OR booking."passengerPhone" ILIKE :like)',
+                '(booking.reference ILIKE :like OR booking.passengerName ILIKE :like OR booking.passengerPhone ILIKE :like)',
                 { like }
             )
         }
@@ -106,7 +106,7 @@ export class DashboardBookingsService {
             qb.andWhere(`booking.status = 'confirmed'`).andWhere('trip.date < CURRENT_DATE')
         }
 
-        qb.orderBy('booking."createdAt"', 'DESC')
+        qb.orderBy('booking.createdAt', 'DESC')
             .take(BOOKING_PAGE_SIZE)
             .skip((page - 1) * BOOKING_PAGE_SIZE)
 
