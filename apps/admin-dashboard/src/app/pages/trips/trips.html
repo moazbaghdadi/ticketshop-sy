@@ -1,20 +1,103 @@
 <div class="trips-page">
   <header class="page-header">
     <h1>الرحلات</h1>
-    <div class="filters">
-      <input
-        type="date"
-        [ngModel]="date()"
-        (ngModelChange)="date.set($event)"
-        class="date-input"
-        placeholder="التاريخ"
-      />
+  </header>
+
+  <section class="filters-panel">
+    <div class="filters-grid">
+      <label class="filter">
+        <span>التاريخ</span>
+        <input
+          type="date"
+          [ngModel]="date()"
+          (ngModelChange)="date.set($event)"
+          class="input"
+        />
+      </label>
+
+      <label class="filter">
+        <span>معرّف الرحلة</span>
+        <input
+          type="text"
+          [ngModel]="tripId()"
+          (ngModelChange)="tripId.set($event)"
+          (keyup.enter)="applyFilter()"
+          class="input ltr"
+          placeholder="UUID أو جزء منه"
+        />
+      </label>
+
+      <label class="filter filter-wide">
+        <span>المسار (بحث تقريبي)</span>
+        <input
+          type="text"
+          [ngModel]="route()"
+          (ngModelChange)="route.set($event)"
+          (keyup.enter)="applyFilter()"
+          class="input"
+          placeholder="اسم مدينة على الطريق…"
+        />
+      </label>
+
+      <label class="filter">
+        <span>الحالة</span>
+        <select
+          [ngModel]="status()"
+          (ngModelChange)="status.set($event)"
+          class="input"
+        >
+          <option value="all">الكل</option>
+          <option value="active">نشطة</option>
+          <option value="cancelled">ملغاة</option>
+        </select>
+      </label>
+
+      <div class="filter filter-group">
+        <span>الإقلاع بين</span>
+        <div class="range">
+          <input
+            type="time"
+            [ngModel]="departureFrom()"
+            (ngModelChange)="departureFrom.set($event)"
+            class="input ltr"
+          />
+          <span class="sep">—</span>
+          <input
+            type="time"
+            [ngModel]="departureTo()"
+            (ngModelChange)="departureTo.set($event)"
+            class="input ltr"
+          />
+        </div>
+      </div>
+
+      <div class="filter filter-group">
+        <span>الوصول بين</span>
+        <div class="range">
+          <input
+            type="time"
+            [ngModel]="arrivalFrom()"
+            (ngModelChange)="arrivalFrom.set($event)"
+            class="input ltr"
+          />
+          <span class="sep">—</span>
+          <input
+            type="time"
+            [ngModel]="arrivalTo()"
+            (ngModelChange)="arrivalTo.set($event)"
+            class="input ltr"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="filters-actions">
       <button class="primary-btn" (click)="applyFilter()">تصفية</button>
-      @if (date()) {
-        <button class="text-btn" (click)="clearFilter()">مسح</button>
+      @if (hasActiveFilters()) {
+        <button class="text-btn" (click)="clearFilter()">مسح الكل</button>
       }
     </div>
-  </header>
+  </section>
 
   @if (loading()) {
     <div class="state">
@@ -32,19 +115,37 @@
       <div class="state">
         <span class="material-icons">inbox</span>
         <p>لا توجد رحلات</p>
+        @if (hasActiveFilters()) {
+          <button class="text-btn" (click)="clearFilter()">مسح عوامل التصفية</button>
+        }
       </div>
     } @else {
       <div class="trips-table">
         <table>
           <thead>
             <tr>
-              <th>التاريخ</th>
-              <th>المسار</th>
+              <th class="sortable" (click)="toggleSort('date')">
+                التاريخ
+                @if (sortBy() === 'date') {
+                  <span class="caret">{{ sortDir() === 'asc' ? '▲' : '▼' }}</span>
+                }
+              </th>
+              <th class="sortable" (click)="toggleSort('route')">
+                المسار
+                @if (sortBy() === 'route') {
+                  <span class="caret">{{ sortDir() === 'asc' ? '▲' : '▼' }}</span>
+                }
+              </th>
               <th>الإقلاع</th>
               <th>الوصول</th>
               <th>الحجوزات</th>
               <th>المقاعد</th>
-              <th>الحالة</th>
+              <th class="sortable" (click)="toggleSort('status')">
+                الحالة
+                @if (sortBy() === 'status') {
+                  <span class="caret">{{ sortDir() === 'asc' ? '▲' : '▼' }}</span>
+                }
+              </th>
               <th></th>
             </tr>
           </thead>
@@ -52,7 +153,14 @@
             @for (trip of data.trips; track trip.id) {
               <tr [class.cancelled]="trip.cancelledAt">
                 <td>{{ formatDate(trip.date) }}</td>
-                <td class="route">{{ trip.fromCity }} → {{ trip.toCity }}</td>
+                <td class="route">
+                  {{ trip.fromCity }} → {{ trip.toCity }}
+                  @if (trip.stationsCount > 2) {
+                    <span class="stations-hint" [title]="'عدد المحطات: ' + trip.stationsCount">
+                      ({{ trip.stationsCount }} محطات)
+                    </span>
+                  }
+                </td>
                 <td class="ltr">{{ trip.departureTime || '—' }}</td>
                 <td class="ltr">{{ trip.arrivalTime || '—' }}</td>
                 <td>{{ trip.bookingsCount }}</td>

@@ -18,19 +18,77 @@
   color: var(--color-text-dark);
 }
 
-.filters {
+.filters-panel {
+  background: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.date-input {
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 14px;
+}
+
+.filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.filter-wide {
+  grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+  .filter-wide {
+    grid-column: span 1;
+  }
+}
+
+.filter-group > .range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-group > .range .input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.filter-group .sep {
+  color: var(--color-text);
+}
+
+.input {
   height: 36px;
   padding: 0 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-white);
   font-family: inherit;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input.ltr {
+  direction: ltr;
+  text-align: left;
+}
+
+.filters-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .primary-btn {
@@ -140,6 +198,28 @@
 .trips-table .route {
   font-weight: 600;
   color: var(--color-text-dark);
+}
+
+.trips-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.trips-table th.sortable:hover {
+  background: var(--color-border);
+}
+
+.trips-table th .caret {
+  font-size: 10px;
+  margin-inline-start: 4px;
+  color: var(--color-primary);
+}
+
+.stations-hint {
+  font-weight: 400;
+  color: var(--color-text);
+  font-size: 12px;
+  margin-inline-start: 4px;
 }
 
 .badge {

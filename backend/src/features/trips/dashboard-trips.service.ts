@@ -1,7 +1,8 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
-import { CITY_IDS, CITY_MAP } from '../../common/data/cities.data'
+import { CITIES, CITY_IDS, CITY_MAP } from '../../common/data/cities.data'
+import { arabicNormalize } from '../../common/util/arabic-normalize'
 import { BookingEntity } from '../bookings/entities/booking.entity'
 import { CreateDashboardTripDto } from './dto/create-dashboard-trip.dto'
 import { CancelledTripDismissalEntity } from './entities/cancelled-trip-dismissal.entity'
@@ -65,6 +66,24 @@ export interface DashboardTripDetail {
     bookings: DashboardBookingSummary[]
 }
 
+export type TripStatusFilter = 'active' | 'cancelled' | 'all'
+export type TripSortField = 'date' | 'route' | 'status'
+export type TripSortDir = 'asc' | 'desc'
+
+export interface ListTripsOptions {
+    date?: string
+    tripId?: string
+    route?: string
+    departureFrom?: string
+    departureTo?: string
+    arrivalFrom?: string
+    arrivalTo?: string
+    status?: TripStatusFilter
+    sortBy?: TripSortField
+    sortDir?: TripSortDir
+    page?: number
+}
+
 const TRIP_PAGE_SIZE = 20
 
 @Injectable()
@@ -78,22 +97,98 @@ export class DashboardTripsService {
         private readonly dismissalRepository: Repository<CancelledTripDismissalEntity>
     ) {}
 
-    async listTrips(companyId: string, opts: { date?: string; page?: number } = {}): Promise<DashboardTripListResult> {
+    async listTrips(companyId: string, opts: ListTripsOptions = {}): Promise<DashboardTripListResult> {
         const page = Math.max(1, opts.page ?? 1)
-        const where: Record<string, unknown> = { companyId }
-        if (opts.date) where['date'] = opts.date
+        const sortDir: 'ASC' | 'DESC' = opts.sortDir === 'asc' ? 'ASC' : 'DESC'
+        const sortBy: TripSortField = opts.sortBy ?? 'date'
 
-        const [trips, total] = await this.tripRepository.findAndCount({
-            where,
-            relations: { stations: true },
-            order: { date: 'DESC' },
-            take: TRIP_PAGE_SIZE,
-            skip: (page - 1) * TRIP_PAGE_SIZE,
-        })
+        const qb = this.tripRepository.createQueryBuilder('trip').where('trip.companyId = :companyId', { companyId })
 
+        if (opts.date) {
+            qb.andWhere('trip.date = :date', { date: opts.date })
+        }
+
+        if (opts.tripId) {
+            qb.andWhere('CAST(trip.id AS text) ILIKE :tripIdLike', { tripIdLike: `%${opts.tripId}%` })
+        }
+
+        if (opts.status === 'active') {
+            qb.andWhere('trip.cancelledAt IS NULL')
+        } else if (opts.status === 'cancelled') {
+            qb.andWhere('trip.cancelledAt IS NOT NULL')
+        }
+
+        if (opts.route) {
+            const normalized = arabicNormalize(opts.route)
+            if (normalized) {
+                const matchedCityIds = CITIES.filter(c => arabicNormalize(c.nameAr).includes(normalized)).map(c => c.id)
+                if (matchedCityIds.length === 0) {
+                    return { trips: [], total: 0, page, pageSize: TRIP_PAGE_SIZE }
+                }
+                qb.andWhere(
+                    'EXISTS (SELECT 1 FROM trip_stations ts WHERE ts."tripId" = trip.id AND ts."cityId" IN (:...matchedCityIds))',
+                    { matchedCityIds }
+                )
+            }
+        }
+
+        if (opts.departureFrom || opts.departureTo) {
+            const conds: string[] = [
+                'o."tripId" = trip.id',
+                'o."order" = (SELECT MIN("order") FROM trip_stations WHERE "tripId" = trip.id)',
+            ]
+            const params: Record<string, string> = {}
+            if (opts.departureFrom) {
+                conds.push('o."departureTime" >= :depFrom')
+                params.depFrom = opts.departureFrom
+            }
+            if (opts.departureTo) {
+                conds.push('o."departureTime" <= :depTo')
+                params.depTo = opts.departureTo
+            }
+            qb.andWhere(`EXISTS (SELECT 1 FROM trip_stations o WHERE ${conds.join(' AND ')})`, params)
+        }
+
+        if (opts.arrivalFrom || opts.arrivalTo) {
+            const conds: string[] = [
+                't."tripId" = trip.id',
+                't."order" = (SELECT MAX("order") FROM trip_stations WHERE "tripId" = trip.id)',
+            ]
+            const params: Record<string, string> = {}
+            if (opts.arrivalFrom) {
+                conds.push('t."arrivalTime" >= :arrFrom')
+                params.arrFrom = opts.arrivalFrom
+            }
+            if (opts.arrivalTo) {
+                conds.push('t."arrivalTime" <= :arrTo')
+                params.arrTo = opts.arrivalTo
+            }
+            qb.andWhere(`EXISTS (SELECT 1 FROM trip_stations t WHERE ${conds.join(' AND ')})`, params)
+        }
+
+        if (sortBy === 'status') {
+            qb.orderBy('CASE WHEN trip.cancelledAt IS NULL THEN 0 ELSE 1 END', sortDir).addOrderBy('trip.date', 'DESC')
+        } else {
+            // Both 'date' and 'route' order by date at the SQL layer; 'route' is then re-sorted in-memory on the page slice.
+            qb.orderBy('trip.date', sortBy === 'route' ? 'DESC' : sortDir)
+        }
+
+        qb.take(TRIP_PAGE_SIZE).skip((page - 1) * TRIP_PAGE_SIZE)
+
+        const [trips, total] = await qb.getManyAndCount()
         const tripIds = trips.map(t => t.id)
-        const bookings = tripIds.length ? await this.bookingRepository.find({ where: { tripId: In(tripIds) } }) : []
 
+        if (tripIds.length === 0) {
+            return { trips: [], total, page, pageSize: TRIP_PAGE_SIZE }
+        }
+
+        const tripsWithStations = await this.tripRepository.find({
+            where: { id: In(tripIds) },
+            relations: { stations: true },
+        })
+        const tripById = new Map(tripsWithStations.map(t => [t.id, t]))
+
+        const bookings = await this.bookingRepository.find({ where: { tripId: In(tripIds) } })
         const aggByTrip = new Map<string, { bookings: number; seats: number }>()
         for (const b of bookings) {
             if (b.status === 'cancelled') continue
@@ -103,14 +198,15 @@ export class DashboardTripsService {
             aggByTrip.set(b.tripId, agg)
         }
 
-        const summaries: DashboardTripSummary[] = trips.map(trip => {
-            const sorted = sortStations(trip.stations ?? [])
+        let summaries: DashboardTripSummary[] = trips.map(t => {
+            const full = tripById.get(t.id) ?? t
+            const sorted = sortStations(full.stations ?? [])
             const origin = sorted[0]
             const terminus = sorted[sorted.length - 1]
-            const agg = aggByTrip.get(trip.id) ?? { bookings: 0, seats: 0 }
+            const agg = aggByTrip.get(t.id) ?? { bookings: 0, seats: 0 }
             return {
-                id: trip.id,
-                date: trip.date,
+                id: t.id,
+                date: t.date,
                 fromCity: origin ? (CITY_MAP.get(origin.cityId)?.nameAr ?? origin.cityId) : '',
                 toCity: terminus ? (CITY_MAP.get(terminus.cityId)?.nameAr ?? terminus.cityId) : '',
                 departureTime: origin?.departureTime ?? null,
@@ -118,10 +214,20 @@ export class DashboardTripsService {
                 stationsCount: sorted.length,
                 bookingsCount: agg.bookings,
                 seatsSold: agg.seats,
-                cancelledAt: trip.cancelledAt ? trip.cancelledAt.toISOString() : null,
-                cancelledReason: trip.cancelledReason ?? null,
+                cancelledAt: t.cancelledAt ? t.cancelledAt.toISOString() : null,
+                cancelledReason: t.cancelledReason ?? null,
             }
         })
+
+        if (sortBy === 'route') {
+            // SQL can't order by the computed route label, so we sort the page in memory.
+            // Tradeoff: sort is per-page, not global; acceptable for a small pageSize.
+            const coll = new Intl.Collator('ar')
+            summaries = summaries.sort((a, b) => {
+                const key = coll.compare(`${a.fromCity} → ${a.toCity}`, `${b.fromCity} → ${b.toCity}`)
+                return sortDir === 'ASC' ? key : -key
+            })
+        }
 
         return { trips: summaries, total, page, pageSize: TRIP_PAGE_SIZE }
     }

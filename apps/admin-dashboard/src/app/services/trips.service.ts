@@ -68,6 +68,24 @@ export interface CreateDashboardBookingRequest {
   passenger: { name: string; phone: string; email?: string | null };
 }
 
+export type TripStatusFilter = 'active' | 'cancelled' | 'all';
+export type TripSortField = 'date' | 'route' | 'status';
+export type TripSortDir = 'asc' | 'desc';
+
+export interface ListTripsOptions {
+  date?: string;
+  tripId?: string;
+  route?: string;
+  departureFrom?: string;
+  departureTo?: string;
+  arrivalFrom?: string;
+  arrivalTo?: string;
+  status?: TripStatusFilter;
+  sortBy?: TripSortField;
+  sortDir?: TripSortDir;
+  page?: number;
+}
+
 export interface CreateDashboardTripRequest {
   date: string;
   stations: {
@@ -83,9 +101,18 @@ export interface CreateDashboardTripRequest {
 export class TripsService {
   private http = inject(HttpClient);
 
-  list(opts: { date?: string; page?: number } = {}): Observable<{ data: DashboardTripListResult }> {
+  list(opts: ListTripsOptions = {}): Observable<{ data: DashboardTripListResult }> {
     let params = new HttpParams();
     if (opts.date) params = params.set('date', opts.date);
+    if (opts.tripId) params = params.set('tripId', opts.tripId);
+    if (opts.route) params = params.set('route', opts.route);
+    if (opts.departureFrom) params = params.set('departureFrom', opts.departureFrom);
+    if (opts.departureTo) params = params.set('departureTo', opts.departureTo);
+    if (opts.arrivalFrom) params = params.set('arrivalFrom', opts.arrivalFrom);
+    if (opts.arrivalTo) params = params.set('arrivalTo', opts.arrivalTo);
+    if (opts.status) params = params.set('status', opts.status);
+    if (opts.sortBy) params = params.set('sortBy', opts.sortBy);
+    if (opts.sortDir) params = params.set('sortDir', opts.sortDir);
     if (opts.page) params = params.set('page', String(opts.page));
     return this.http.get<{ data: DashboardTripListResult }>(
       `${environment.apiUrl}/dashboard/trips`,

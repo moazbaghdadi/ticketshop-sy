@@ -94,8 +94,30 @@ npm run invite -w backend -- --email=<email> --companyId=<uuid>   # Issue an inv
 
 ## Deployment
 
-The customer app is configured for deployment to GitHub Pages.
-Run `npm run deploy:app` from the root to build and deploy.
+Three independent targets, each auto-deployed from GitHub on push to `master`:
+
+| Target | Platform | Build command | Notes |
+|---|---|---|---|
+| `backend/` | **Railway** | `npm run build:backend` | Runs `nest build`; env vars configured in Railway dashboard (DB creds, `JWT_SECRET`, `JWT_EXPIRES_IN`, `DASHBOARD_BASE_URL`, CORS origins). |
+| `apps/customer-app/` | **GitHub Pages** | `npm run build:app` / `npm run deploy:app` | Manual deploy via `gh-pages`; no env vars. |
+| `apps/admin-dashboard/` | **Netlify** | `npm run build:admin` | SPA redirects handled by `apps/admin-dashboard/public/_redirects` (or `netlify.toml`). `environment.apiUrl` must point at the Railway backend URL. |
+
+### Deployment-impact rule
+
+**Before finishing any task, audit whether the changes could break deployment on any of the three targets.** If yes, you MUST either (a) make the aligning change in this PR, or (b) call out the required manual step explicitly in the final summary — do not silently ship a change that depends on the user updating an external system.
+
+Changes that trigger this audit:
+
+- **New or changed env vars** (anything read from `process.env` in backend, or `environment.*` in a frontend) → list them for the user to set in Railway / Netlify.
+- **New build steps, scripts, or build-time dependencies** → confirm Railway / Netlify / gh-pages pipelines still succeed (e.g., new `postinstall`, new tool in `devDependencies` that needs to be in `dependencies`, new CLI that expects a binary in the image).
+- **CORS / cookie / auth config** → backend `origin` list must include the Netlify + GitHub Pages URLs; any same-origin assumption is a red flag.
+- **API contract changes** (new routes, renamed response fields, new required request fields, changed base path) → both frontends consume the backend, so contract drift breaks the deployed apps even if local `npm run start:*` works.
+- **Routing changes in admin-dashboard** → SPA needs the `_redirects` rule; verify a new top-level route still resolves after a hard refresh on Netlify.
+- **Shared-models changes** → both frontends re-bundle; verify both builds pass, not just the one being edited.
+- **Database schema changes** → `synchronize: true` runs in dev; on Railway this means a deploy can silently alter the prod schema. Flag any entity/column change loudly.
+- **Port / URL assumptions** — anything hardcoded to `localhost:3000` / `:4200` / `:4201` is a deploy-break.
+
+When in doubt, say so explicitly in the final summary ("⚠ This adds env var X — set it in Railway before deploying"). Silent breakage is the failure mode to avoid.
 
 ## Development Notes
 
