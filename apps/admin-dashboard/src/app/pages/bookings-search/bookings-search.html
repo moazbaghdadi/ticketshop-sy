@@ -1,0 +1,131 @@
+<div class="bookings-search-page">
+  <header class="page-header">
+    <h1>بحث عن حجز</h1>
+    <p class="subtitle">ابحث بالاسم، الهاتف، أو رقم الحجز</p>
+  </header>
+
+  <section class="filters-panel">
+    <div class="filters-grid">
+      <label class="filter filter-wide">
+        <span>بحث</span>
+        <input
+          type="text"
+          [ngModel]="query()"
+          (ngModelChange)="query.set($event)"
+          (keyup.enter)="applyFilter()"
+          class="input"
+          placeholder="الاسم، الهاتف، أو رقم الحجز"
+        />
+      </label>
+
+      <label class="filter">
+        <span>تاريخ الرحلة</span>
+        <input
+          type="date"
+          [ngModel]="date()"
+          (ngModelChange)="date.set($event)"
+          class="input"
+        />
+      </label>
+
+      <label class="filter">
+        <span>الحالة</span>
+        <select
+          [ngModel]="status()"
+          (ngModelChange)="status.set($event)"
+          class="input"
+        >
+          <option value="all">الكل</option>
+          <option value="ongoing">قادمة</option>
+          <option value="past">سابقة</option>
+          <option value="cancelled">ملغاة</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="filters-actions">
+      <button class="primary-btn" (click)="applyFilter()">بحث</button>
+      @if (hasActiveFilters()) {
+        <button class="text-btn" (click)="clearFilter()">مسح الكل</button>
+      }
+    </div>
+  </section>
+
+  @if (loading()) {
+    <div class="state">
+      <span class="material-icons spinning">sync</span>
+      <p>جارٍ التحميل...</p>
+    </div>
+  } @else if (error(); as err) {
+    <div class="state error">
+      <span class="material-icons">error_outline</span>
+      <p>{{ err }}</p>
+      <button class="secondary-btn" (click)="load()">إعادة المحاولة</button>
+    </div>
+  } @else if (result(); as data) {
+    @if (data.bookings.length === 0) {
+      <div class="state">
+        <span class="material-icons">inbox</span>
+        <p>لا توجد حجوزات</p>
+        @if (hasActiveFilters()) {
+          <button class="text-btn" (click)="clearFilter()">مسح عوامل البحث</button>
+        }
+      </div>
+    } @else {
+      <div class="bookings-table">
+        <table>
+          <thead>
+            <tr>
+              <th>الحجز</th>
+              <th>المسافر</th>
+              <th>الهاتف</th>
+              <th>الرحلة</th>
+              <th>تاريخ الرحلة</th>
+              <th>المقاعد</th>
+              <th>المبلغ</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (b of data.bookings; track b.id) {
+              <tr
+                class="row-link"
+                [class.cancelled]="b.status === 'cancelled'"
+                [routerLink]="['/bookings', b.reference]"
+              >
+                <td class="ltr">{{ b.reference }}</td>
+                <td>{{ b.passengerName }}</td>
+                <td class="ltr">{{ b.passengerPhone }}</td>
+                <td class="route">{{ b.boardingCity }} ← {{ b.dropoffCity }}</td>
+                <td>{{ formatDate(b.tripDate) }}</td>
+                <td>{{ b.seatIds.join('، ') }}</td>
+                <td class="price">{{ formatPrice(b.totalPrice) }}</td>
+                <td>
+                  @if (b.tripCancelled) {
+                    <span class="badge cancelled-badge">رحلة ملغاة</span>
+                  } @else if (b.status === 'cancelled') {
+                    <span class="badge cancelled-badge">ملغي</span>
+                  } @else {
+                    <span class="badge active-badge">مؤكد</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <button class="secondary-btn" [disabled]="page() === 1" (click)="prevPage()">السابق</button>
+        <span>الصفحة {{ page() }} من {{ totalPages(data.total, data.pageSize) }}</span>
+        <button
+          class="secondary-btn"
+          [disabled]="page() * data.pageSize >= data.total"
+          (click)="nextPage()"
+        >
+          التالي
+        </button>
+      </div>
+    }
+  }
+</div>

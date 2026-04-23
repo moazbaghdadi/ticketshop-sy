@@ -77,7 +77,9 @@
             <tbody>
               @for (b of d.bookings; track b.id) {
                 <tr [class.cancelled]="b.status === 'cancelled'">
-                  <td class="ltr">{{ b.reference }}</td>
+                  <td class="ltr">
+                    <a class="ref-link" [routerLink]="['/bookings', b.reference]">{{ b.reference }}</a>
+                  </td>
                   <td>{{ b.passengerName }}</td>
                   <td class="ltr">{{ b.passengerPhone }}</td>
                   <td>{{ b.seatIds.join('، ') }}</td>

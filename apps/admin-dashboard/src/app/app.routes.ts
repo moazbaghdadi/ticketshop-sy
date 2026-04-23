@@ -38,6 +38,16 @@ export const routes: Routes = [
         path: 'reports',
         loadComponent: () => import('./pages/reports/reports').then((m) => m.ReportsPage),
       },
+      {
+        path: 'bookings',
+        loadComponent: () =>
+          import('./pages/bookings-search/bookings-search').then((m) => m.BookingsSearchPage),
+      },
+      {
+        path: 'bookings/:reference',
+        loadComponent: () =>
+          import('./pages/booking-detail/booking-detail').then((m) => m.BookingDetailPage),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

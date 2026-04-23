@@ -378,6 +378,16 @@
   font-size: 13px;
 }
 
+.ref-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ref-link:hover {
+  text-decoration: underline;
+}
+
 .print-area {
   display: none;
 }

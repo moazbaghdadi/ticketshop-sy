@@ -47,7 +47,16 @@ describe('DashboardBookingsService', () => {
                 },
                 {
                     provide: getRepositoryToken(TripEntity),
-                    useValue: { findOne: jest.fn() },
+                    useValue: { findOne: jest.fn(), find: jest.fn() },
+                },
+                {
+                    provide: getRepositoryToken(BookingEntity),
+                    useValue: {
+                        createQueryBuilder: jest.fn(),
+                        find: jest.fn(),
+                        findOne: jest.fn(),
+                        save: jest.fn(),
+                    },
                 },
             ],
         }).compile()

@@ -93,7 +93,7 @@
             </thead>
             <tbody>
               @for (sale of data.latestSales; track sale.reference) {
-                <tr>
+                <tr class="row-link" [routerLink]="['/bookings', sale.reference]">
                   <td class="ltr">{{ sale.reference }}</td>
                   <td>{{ sale.passengerName }}</td>
                   <td>{{ sale.seatsCount }}</td>

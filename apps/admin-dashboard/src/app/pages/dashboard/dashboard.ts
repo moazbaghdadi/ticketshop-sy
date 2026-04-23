@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   CancelledTripSummary,
   DashboardOverview,
@@ -8,6 +9,7 @@ import {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })

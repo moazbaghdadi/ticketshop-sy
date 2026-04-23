@@ -1,0 +1,285 @@
+<div class="booking-detail-page">
+  <header class="page-header">
+    <a class="back-link" routerLink="/bookings">
+      <span class="material-icons">arrow_forward</span>
+      العودة للنتائج
+    </a>
+  </header>
+
+  @if (loading()) {
+    <div class="state">
+      <span class="material-icons spinning">sync</span>
+      <p>جارٍ التحميل...</p>
+    </div>
+  } @else if (error(); as err) {
+    <div class="state error">
+      <span class="material-icons">error_outline</span>
+      <p>{{ err }}</p>
+      <button class="secondary-btn" (click)="load()">إعادة المحاولة</button>
+    </div>
+  } @else if (booking(); as b) {
+    <section class="title-row">
+      <div>
+        <h1>حجز <span class="ltr">{{ b.reference }}</span></h1>
+        @if (b.tripCancelled) {
+          <span class="badge cancelled-badge">الرحلة ملغاة</span>
+        } @else if (b.status === 'cancelled') {
+          <span class="badge cancelled-badge">ملغي</span>
+        } @else {
+          <span class="badge active-badge">مؤكد</span>
+        }
+      </div>
+      <button
+        class="icon-btn lock-btn"
+        (click)="toggleLock()"
+        [disabled]="!canEdit()"
+        [title]="locked() ? (canEdit() ? 'فتح التعديل' : 'لا يمكن تعديل هذا الحجز') : 'إقفال التعديل'"
+      >
+        <span class="material-icons">{{ locked() ? 'lock' : 'lock_open' }}</span>
+      </button>
+    </section>
+
+    @if (b.tripCancelled) {
+      <div class="banner danger">
+        <span class="material-icons">warning</span>
+        <div>
+          <strong>الرحلة بأكملها ملغاة</strong>
+          @if (b.tripCancelledReason) {
+            <div class="reason">السبب: {{ b.tripCancelledReason }}</div>
+          }
+        </div>
+      </div>
+    } @else if (b.status === 'cancelled') {
+      <div class="banner danger">
+        <span class="material-icons">cancel</span>
+        <strong>هذا الحجز ملغى</strong>
+      </div>
+    }
+
+    <section class="card">
+      <header class="card-header">
+        <span class="material-icons">directions_bus</span>
+        <h2>تفاصيل الرحلة</h2>
+      </header>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="label">المسار</span>
+          <strong>{{ b.trip.from.nameAr }} ← {{ b.trip.to.nameAr }}</strong>
+        </div>
+        <div class="info-item">
+          <span class="label">التاريخ</span>
+          <strong>{{ formatDate(b.trip.date) }}</strong>
+        </div>
+        <div class="info-item">
+          <span class="label">الإقلاع</span>
+          <strong class="ltr">{{ b.trip.departureTime }}</strong>
+        </div>
+        <div class="info-item">
+          <span class="label">الوصول</span>
+          <strong class="ltr">{{ b.trip.arrivalTime }}</strong>
+        </div>
+        <div class="info-item">
+          <span class="label">الشركة</span>
+          <strong>{{ b.trip.company.nameAr }}</strong>
+        </div>
+        <div class="info-item">
+          <span class="label">المقاعد</span>
+          <strong>{{ b.seats.join('، ') }}</strong>
+        </div>
+        <div class="info-item">
+          <span class="label">الإجمالي</span>
+          <strong class="price">{{ formatPrice(b.totalPrice) }}</strong>
+        </div>
+        <div class="info-item">
+          <span class="label">طريقة الدفع</span>
+          <strong>{{ paymentLabel(b.paymentMethod) }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <header class="card-header">
+        <span class="material-icons">person</span>
+        <h2>بيانات المسافر</h2>
+      </header>
+
+      <div class="passenger-grid">
+        <div class="field">
+          <label>الاسم</label>
+          @if (!locked() && isChanged('name')) {
+            <div class="hint">القيمة السابقة: {{ original().name || '—' }}</div>
+          }
+          @if (locked()) {
+            <div class="read-only-value">{{ b.passenger.name }}</div>
+          } @else {
+            <input
+              type="text"
+              class="input"
+              [ngModel]="draft().name"
+              (ngModelChange)="updateDraft('name', $event)"
+              [disabled]="saving()"
+            />
+          }
+        </div>
+
+        <div class="field">
+          <label>الهاتف</label>
+          @if (!locked() && isChanged('phone')) {
+            <div class="hint ltr">القيمة السابقة: {{ original().phone || '—' }}</div>
+          }
+          @if (locked()) {
+            <div class="read-only-value ltr">{{ b.passenger.phone }}</div>
+          } @else {
+            <input
+              type="text"
+              class="input ltr"
+              [ngModel]="draft().phone"
+              (ngModelChange)="updateDraft('phone', $event)"
+              [disabled]="saving()"
+            />
+          }
+        </div>
+
+        <div class="field">
+          <label>البريد الإلكتروني</label>
+          @if (!locked() && isChanged('email')) {
+            <div class="hint ltr">القيمة السابقة: {{ original().email || '—' }}</div>
+          }
+          @if (locked()) {
+            <div class="read-only-value ltr">{{ b.passenger.email || '—' }}</div>
+          } @else {
+            <input
+              type="email"
+              class="input ltr"
+              [ngModel]="draft().email"
+              (ngModelChange)="updateDraft('email', $event)"
+              [disabled]="saving()"
+              placeholder="اختياري"
+            />
+          }
+        </div>
+      </div>
+
+      @if (!locked()) {
+        @if (saveError(); as err) {
+          <div class="inline-error">
+            <span class="material-icons">error_outline</span>
+            {{ err }}
+          </div>
+        }
+        <div class="edit-actions">
+          <button class="text-btn" (click)="cancelEdit()" [disabled]="saving()">
+            إلغاء
+          </button>
+          <button
+            class="primary-btn"
+            (click)="save()"
+            [disabled]="saving() || !hasChanges()"
+          >
+            @if (saving()) {
+              جارٍ الحفظ...
+            } @else {
+              حفظ
+            }
+          </button>
+        </div>
+      }
+    </section>
+
+    @if (locked()) {
+      @if (actionError(); as err) {
+        <div class="inline-error">
+          <span class="material-icons">error_outline</span>
+          {{ err }}
+        </div>
+      }
+
+      @if (!b.tripCancelled) {
+        <section class="action-row">
+          @if (b.status === 'cancelled') {
+            <button
+              class="success-btn"
+              (click)="reactivate()"
+              [disabled]="reactivating()"
+            >
+              <span class="material-icons">restart_alt</span>
+              @if (reactivating()) {
+                جارٍ إعادة التفعيل...
+              } @else {
+                إعادة تفعيل الحجز
+              }
+            </button>
+          } @else {
+            <button
+              class="danger-btn"
+              (click)="openCancelConfirm()"
+              [disabled]="cancelling()"
+            >
+              <span class="material-icons">cancel</span>
+              إلغاء الحجز
+            </button>
+          }
+        </section>
+      }
+
+      @if (b.status === 'confirmed' && !b.tripCancelled) {
+        <section class="action-row">
+          <button class="secondary-btn" (click)="print()">
+            <span class="material-icons">print</span>
+            طباعة التذكرة
+          </button>
+          <button
+            class="secondary-btn"
+            (click)="emailTicket()"
+            [disabled]="!b.passenger.email || emailSending()"
+            [title]="b.passenger.email ? 'إرسال بالبريد' : 'لا يوجد بريد للمسافر'"
+          >
+            <span class="material-icons">email</span>
+            @if (emailSending()) {
+              جارٍ الإرسال...
+            } @else {
+              إرسال بالبريد
+            }
+          </button>
+          @if (emailNotice(); as note) {
+            <span class="email-notice">{{ note }}</span>
+          }
+        </section>
+      }
+    }
+
+    <div class="print-area">
+      <div class="ticket">
+        <h3>تذكرة رحلة</h3>
+        <div class="ticket-row"><span>المرجع:</span><strong class="ltr">{{ b.reference }}</strong></div>
+        <div class="ticket-row"><span>المسافر:</span><strong>{{ b.passenger.name }}</strong></div>
+        <div class="ticket-row"><span>الهاتف:</span><strong class="ltr">{{ b.passenger.phone }}</strong></div>
+        <div class="ticket-row"><span>من:</span><strong>{{ b.trip.from.nameAr }}</strong></div>
+        <div class="ticket-row"><span>إلى:</span><strong>{{ b.trip.to.nameAr }}</strong></div>
+        <div class="ticket-row"><span>التاريخ:</span><strong>{{ formatDate(b.trip.date) }}</strong></div>
+        <div class="ticket-row"><span>الإقلاع:</span><strong class="ltr">{{ b.trip.departureTime }}</strong></div>
+        <div class="ticket-row"><span>المقاعد:</span><strong>{{ b.seats.join('، ') }}</strong></div>
+        <div class="ticket-row"><span>الإجمالي:</span><strong class="price">{{ formatPrice(b.totalPrice) }}</strong></div>
+      </div>
+    </div>
+
+    @if (showCancelConfirm()) {
+      <div class="modal-backdrop" (click)="closeCancelConfirm()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <h2>تأكيد إلغاء الحجز</h2>
+          <p>هل أنت متأكد من إلغاء الحجز <strong class="ltr">{{ b.reference }}</strong>؟ سيتم تحرير المقاعد.</p>
+          <div class="modal-actions">
+            <button class="text-btn" (click)="closeCancelConfirm()" [disabled]="cancelling()">تراجع</button>
+            <button class="danger-btn" (click)="confirmCancel()" [disabled]="cancelling()">
+              @if (cancelling()) {
+                جارٍ الإلغاء...
+              } @else {
+                تأكيد الإلغاء
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>
