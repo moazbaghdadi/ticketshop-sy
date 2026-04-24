@@ -28,6 +28,7 @@ describe('AuthService', () => {
         email: 'agent@ahliya.sy',
         companyId: mockCompany.id,
         company: mockCompany,
+        role: 'admin',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         acceptedAt: null,
         createdAt: new Date(),
@@ -94,7 +95,7 @@ describe('AuthService', () => {
                 passwordHash,
                 companyId: mockCompany.id,
                 company: mockCompany,
-                role: 'agent',
+                role: 'admin',
                 createdAt: new Date(),
             })
             await expect(
@@ -109,7 +110,7 @@ describe('AuthService', () => {
                 passwordHash: null,
                 companyId: mockCompany.id,
                 company: mockCompany,
-                role: 'agent',
+                role: 'admin',
                 createdAt: new Date(),
             })
             await expect(service.login({ email: 'agent@ahliya.sy', password: 'x' })).rejects.toThrow(
@@ -125,7 +126,7 @@ describe('AuthService', () => {
                 passwordHash,
                 companyId: mockCompany.id,
                 company: mockCompany,
-                role: 'agent',
+                role: 'admin',
                 createdAt: new Date(),
             })
 
@@ -136,13 +137,13 @@ describe('AuthService', () => {
                 id: 'u',
                 email: 'agent@ahliya.sy',
                 companyId: mockCompany.id,
-                role: 'agent',
+                role: 'admin',
             })
             expect(jwtService.sign).toHaveBeenCalledWith({
                 sub: 'u',
                 email: 'agent@ahliya.sy',
                 companyId: mockCompany.id,
-                role: 'agent',
+                role: 'admin',
             })
         })
     })
@@ -150,26 +151,33 @@ describe('AuthService', () => {
     describe('createInvitation', () => {
         it('rejects unknown company', async () => {
             companyRepository.findOneBy.mockResolvedValue(null)
-            await expect(service.createInvitation('a@b.c', 'missing')).rejects.toThrow(NotFoundException)
+            await expect(service.createInvitation('a@b.c', 'missing', 'admin')).rejects.toThrow(NotFoundException)
         })
 
         it('rejects when a user already exists', async () => {
             companyRepository.findOneBy.mockResolvedValue(mockCompany)
             userRepository.findOneBy.mockResolvedValue({ id: 'u' } as UserEntity)
-            await expect(service.createInvitation('a@b.c', mockCompany.id)).rejects.toThrow(ConflictException)
+            await expect(service.createInvitation('a@b.c', mockCompany.id, 'admin')).rejects.toThrow(ConflictException)
         })
 
         it('creates a 64-char hex token with a 7-day expiry', async () => {
             companyRepository.findOneBy.mockResolvedValue(mockCompany)
             userRepository.findOneBy.mockResolvedValue(null)
             const before = Date.now()
-            const inv = await service.createInvitation('New@B.c', mockCompany.id)
+            const inv = await service.createInvitation('New@B.c', mockCompany.id, 'admin')
             const after = Date.now()
             expect(inv.token).toMatch(/^[0-9a-f]{64}$/)
             expect(inv.email).toBe('new@b.c')
             const ttl = inv.expiresAt.getTime()
             expect(ttl).toBeGreaterThanOrEqual(before + 7 * 24 * 60 * 60 * 1000 - 1000)
             expect(ttl).toBeLessThanOrEqual(after + 7 * 24 * 60 * 60 * 1000 + 1000)
+        })
+
+        it('persists the requested role on the invitation', async () => {
+            companyRepository.findOneBy.mockResolvedValue(mockCompany)
+            userRepository.findOneBy.mockResolvedValue(null)
+            const inv = await service.createInvitation('sales@b.c', mockCompany.id, 'sales')
+            expect(inv.role).toBe('sales')
         })
     })
 
@@ -212,6 +220,16 @@ describe('AuthService', () => {
             expect(savedUser.passwordHash).toMatch(/^\$2/) // bcrypt signature
             const savedInvitation = invitationRepository.save.mock.calls[0]![0] as Partial<InvitationEntity>
             expect(savedInvitation.acceptedAt).toBeInstanceOf(Date)
+        })
+
+        it('propagates the invitation role onto the new user', async () => {
+            invitationRepository.findOne.mockResolvedValue(buildInvitation({ role: 'sales' }))
+            userRepository.findOneBy.mockResolvedValue(null)
+
+            await service.acceptInvitation('abc', { password: 'abcdefgh' })
+
+            const savedUser = userRepository.save.mock.calls[0]![0] as Partial<UserEntity>
+            expect(savedUser.role).toBe('sales')
         })
     })
 

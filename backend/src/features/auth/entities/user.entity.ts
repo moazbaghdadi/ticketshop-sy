@@ -1,7 +1,8 @@
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import type { UserRole } from '@ticketshop-sy/shared-models'
 import { CompanyEntity } from '../../companies/entities/company.entity'
 
-export type UserRole = 'agent'
+export type { UserRole }
 
 @Entity('users')
 export class UserEntity {
@@ -23,7 +24,7 @@ export class UserEntity {
     @JoinColumn({ name: 'companyId' })
     company!: CompanyEntity
 
-    @Column({ default: 'agent' })
+    @Column({ type: 'text' })
     role!: UserRole
 
     @CreateDateColumn()

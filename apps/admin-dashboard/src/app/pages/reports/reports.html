@@ -32,10 +32,12 @@
         <span class="material-icons">print</span>
         طباعة
       </button>
-      <button class="secondary-btn" (click)="openEmailModal()">
-        <span class="material-icons">email</span>
-        إرسال بالبريد
-      </button>
+      @if (auth.isAdmin()) {
+        <button class="secondary-btn" (click)="openEmailModal()">
+          <span class="material-icons">email</span>
+          إرسال بالبريد
+        </button>
+      }
     </div>
 
     <div class="report-area">
@@ -124,7 +126,7 @@
     </div>
   }
 
-  @if (showEmailModal()) {
+  @if (auth.isAdmin() && showEmailModal()) {
     <div class="modal-backdrop" (click)="closeEmailModal()">
       <div class="modal" (click)="$event.stopPropagation()">
         <header>

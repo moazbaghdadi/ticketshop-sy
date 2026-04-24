@@ -10,10 +10,12 @@ import {
     Query,
     UseGuards,
 } from '@nestjs/common'
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiForbiddenResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
+import { Roles } from '../auth/decorators/roles.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { RolesGuard } from '../auth/guards/roles.guard'
 import {
     DashboardTripDetail,
     DashboardTripListResult,
@@ -114,14 +116,20 @@ export class DashboardTripsController {
     }
 
     @Post()
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
     @ApiOperation({ summary: 'Create a multi-stop trip for the current user’s company' })
+    @ApiForbiddenResponse({ description: 'Requires admin role' })
     async create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateDashboardTripDto): Promise<{ data: { id: string } }> {
         const trip = await this.dashboardTripsService.create(user.companyId, dto)
         return { data: { id: trip.id } }
     }
 
     @Post(':id/cancel')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
     @ApiOperation({ summary: 'Cancel a trip and mark its bookings as cancelled' })
+    @ApiForbiddenResponse({ description: 'Requires admin role' })
     async cancel(
         @CurrentUser() user: AuthenticatedUser,
         @Param('id', ParseUUIDPipe) tripId: string,

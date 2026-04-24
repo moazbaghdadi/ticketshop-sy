@@ -87,3 +87,7 @@ export interface BookingResponse {
   tripCancelledAt: string | null;
   tripCancelledReason: string | null;
 }
+
+export type UserRole = 'admin' | 'sales';
+
+export const USER_ROLES: readonly UserRole[] = ['admin', 'sales'];

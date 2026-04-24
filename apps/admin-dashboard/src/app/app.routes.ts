@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './guards/admin.guard';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -27,6 +28,7 @@ export const routes: Routes = [
       },
       {
         path: 'trips/new',
+        canActivate: [adminGuard],
         loadComponent: () => import('./pages/new-trip/new-trip').then((m) => m.NewTripPage),
       },
       {

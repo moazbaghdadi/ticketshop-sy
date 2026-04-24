@@ -11,7 +11,7 @@ async function main(): Promise<void> {
     } catch (err) {
         if (err instanceof InviteCliArgsError) {
             console.error(err.message)
-            console.error('Usage: npm run invite -- --email=foo@bar.com --companyId=<uuid>')
+            console.error('Usage: npm run invite -- --email=foo@bar.com --companyId=<uuid> --role=admin|sales')
             process.exit(1)
         }
         throw err
@@ -21,7 +21,7 @@ async function main(): Promise<void> {
     try {
         const authService = app.get(AuthService)
         const configService = app.get(ConfigService)
-        const invitation = await authService.createInvitation(args.email, args.companyId)
+        const invitation = await authService.createInvitation(args.email, args.companyId, args.role)
         const baseUrl = configService.get<string>('DASHBOARD_BASE_URL', 'http://localhost:4201')
         const url = buildInvitationUrl(baseUrl, invitation.token)
         console.log(url)

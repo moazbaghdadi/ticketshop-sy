@@ -1,6 +1,7 @@
 import { ConflictException, GoneException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { InjectRepository } from '@nestjs/typeorm'
+import { UserRole } from '@ticketshop-sy/shared-models'
 import * as bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { Repository } from 'typeorm'
@@ -18,7 +19,7 @@ const INVITATION_TTL_DAYS = 7
 
 export interface AuthSession {
     accessToken: string
-    user: { id: string; email: string; companyId: string; role: UserEntity['role'] }
+    user: { id: string; email: string; companyId: string; role: UserRole }
 }
 
 export interface InvitationSummary {
@@ -50,7 +51,7 @@ export class AuthService {
         return this.issueSession(user)
     }
 
-    async createInvitation(email: string, companyId: string): Promise<InvitationEntity> {
+    async createInvitation(email: string, companyId: string, role: UserRole): Promise<InvitationEntity> {
         const company = await this.companyRepository.findOneBy({ id: companyId })
         if (!company) {
             throw new NotFoundException(`Company ${companyId} not found`)
@@ -66,6 +67,7 @@ export class AuthService {
             token,
             email: normalizedEmail,
             companyId,
+            role,
             expiresAt,
             acceptedAt: null,
         })
@@ -89,7 +91,7 @@ export class AuthService {
                 email: invitation.email,
                 passwordHash,
                 companyId: invitation.companyId,
-                role: 'agent',
+                role: invitation.role,
             })
         )
         invitation.acceptedAt = new Date()

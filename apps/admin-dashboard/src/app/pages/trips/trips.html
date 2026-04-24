@@ -176,7 +176,7 @@
                   <a class="icon-btn" [routerLink]="['/trips', trip.id, 'reservations']" title="الحجوزات">
                     <span class="material-icons">list_alt</span>
                   </a>
-                  @if (!trip.cancelledAt) {
+                  @if (!trip.cancelledAt && auth.isAdmin()) {
                     <button class="icon-btn danger" (click)="openCancel(trip)" title="إلغاء">
                       <span class="material-icons">cancel</span>
                     </button>
@@ -202,7 +202,7 @@
     }
   }
 
-  @if (cancelTarget(); as trip) {
+  @if (auth.isAdmin() && cancelTarget(); as trip) {
     <div class="modal-backdrop" (click)="closeCancel()">
       <div class="modal" (click)="$event.stopPropagation()">
         <h2>تأكيد إلغاء الرحلة</h2>

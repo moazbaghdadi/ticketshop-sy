@@ -12,7 +12,7 @@ import { DashboardReport, ReportsService } from '../../services/reports.service'
 })
 export class ReportsPage implements OnInit {
   private reportsService = inject(ReportsService);
-  private auth = inject(AuthService);
+  auth = inject(AuthService);
 
   from = signal<string>('');
   to = signal<string>('');

@@ -1,6 +1,9 @@
+import { USER_ROLES, UserRole } from '@ticketshop-sy/shared-models'
+
 export interface InviteCliArgs {
     email: string
     companyId: string
+    role: UserRole
 }
 
 export class InviteCliArgsError extends Error {}
@@ -24,12 +27,17 @@ export function parseInviteArgs(argv: string[]): InviteCliArgs {
     }
     const email = args.get('email')
     const companyId = args.get('companyId')
+    const role = args.get('role')
     if (!email) throw new InviteCliArgsError('Missing required flag: --email')
     if (!companyId) throw new InviteCliArgsError('Missing required flag: --companyId')
+    if (!role) throw new InviteCliArgsError('Missing required flag: --role')
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         throw new InviteCliArgsError(`Invalid email: ${email}`)
     }
-    return { email, companyId }
+    if (!USER_ROLES.includes(role as UserRole)) {
+        throw new InviteCliArgsError(`Invalid role: ${role} (expected one of: ${USER_ROLES.join(', ')})`)
+    }
+    return { email, companyId, role: role as UserRole }
 }
 
 export function buildInvitationUrl(baseUrl: string, token: string): string {

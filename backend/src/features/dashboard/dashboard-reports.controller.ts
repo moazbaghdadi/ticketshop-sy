@@ -1,8 +1,10 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common'
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiForbiddenResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
+import { Roles } from '../auth/decorators/roles.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { RolesGuard } from '../auth/guards/roles.guard'
 import { DashboardReport, DashboardReportsService } from './dashboard-reports.service'
 import { EmailReportDto } from './dto/email-report.dto'
 
@@ -32,8 +34,11 @@ export class DashboardReportsController {
     }
 
     @Post('email')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
     @HttpCode(204)
     @ApiOperation({ summary: 'Send the report for a date range to an email recipient' })
+    @ApiForbiddenResponse({ description: 'Requires admin role' })
     async email(@CurrentUser() user: AuthenticatedUser, @Body() dto: EmailReportDto): Promise<void> {
         await this.reportsService.emailReport(user.companyId, dto.from, dto.to, dto.recipient)
     }

@@ -2,35 +2,49 @@ import { buildInvitationUrl, InviteCliArgsError, parseInviteArgs } from './invit
 
 describe('parseInviteArgs', () => {
     it('parses --key=value form', () => {
-        expect(parseInviteArgs(['--email=a@b.c', '--companyId=abc-123'])).toEqual({
+        expect(parseInviteArgs(['--email=a@b.c', '--companyId=abc-123', '--role=admin'])).toEqual({
             email: 'a@b.c',
             companyId: 'abc-123',
+            role: 'admin',
         })
     })
 
     it('parses --key value form', () => {
-        expect(parseInviteArgs(['--email', 'a@b.c', '--companyId', 'abc-123'])).toEqual({
+        expect(parseInviteArgs(['--email', 'a@b.c', '--companyId', 'abc-123', '--role', 'sales'])).toEqual({
             email: 'a@b.c',
             companyId: 'abc-123',
+            role: 'sales',
         })
     })
 
     it('rejects missing --email', () => {
-        expect(() => parseInviteArgs(['--companyId=abc'])).toThrow(InviteCliArgsError)
+        expect(() => parseInviteArgs(['--companyId=abc', '--role=admin'])).toThrow(InviteCliArgsError)
     })
 
     it('rejects missing --companyId', () => {
-        expect(() => parseInviteArgs(['--email=a@b.c'])).toThrow(InviteCliArgsError)
+        expect(() => parseInviteArgs(['--email=a@b.c', '--role=admin'])).toThrow(InviteCliArgsError)
+    })
+
+    it('rejects missing --role', () => {
+        expect(() => parseInviteArgs(['--email=a@b.c', '--companyId=abc'])).toThrow(/Missing required flag: --role/)
+    })
+
+    it('rejects unknown role', () => {
+        expect(() => parseInviteArgs(['--email=a@b.c', '--companyId=abc', '--role=manager'])).toThrow(
+            /Invalid role/
+        )
     })
 
     it('rejects invalid email shape', () => {
-        expect(() => parseInviteArgs(['--email=not-an-email', '--companyId=abc'])).toThrow(
+        expect(() => parseInviteArgs(['--email=not-an-email', '--companyId=abc', '--role=admin'])).toThrow(
             /Invalid email/
         )
     })
 
     it('rejects --email followed by another flag instead of a value', () => {
-        expect(() => parseInviteArgs(['--email', '--companyId=abc'])).toThrow(/Missing value for --email/)
+        expect(() => parseInviteArgs(['--email', '--companyId=abc', '--role=admin'])).toThrow(
+            /Missing value for --email/
+        )
     })
 })
 

@@ -28,10 +28,12 @@
         <span class="material-icons">directions_bus</span>
         الرحلات
       </a>
-      <a routerLink="/trips/new" routerLinkActive="active" class="nav-item">
-        <span class="material-icons">add_circle</span>
-        رحلة جديدة
-      </a>
+      @if (auth.isAdmin()) {
+        <a routerLink="/trips/new" routerLinkActive="active" class="nav-item">
+          <span class="material-icons">add_circle</span>
+          رحلة جديدة
+        </a>
+      }
       <a routerLink="/bookings" routerLinkActive="active" class="nav-item">
         <span class="material-icons">manage_search</span>
         بحث عن حجز

@@ -26,9 +26,10 @@ ticketshop-sy/
 
 ### Admin Dashboard (apps/admin-dashboard)
 - **Framework:** Angular 21 standalone (mirrors customer-app). Runs on port **4201**.
-- **Auth:** `AuthService` persists JWT + user in `localStorage`; `authInterceptor` attaches the token and logs the user out on 401; `authGuard` protects routes.
-- **Shell:** sticky topbar + right-side sidebar (Arabic/RTL). Sidebar links: `/dashboard`, `/trips`, `/trips/new`, `/bookings`, `/reports`.
-- **Routes:** `/login`, `/accept-invitation/:token`, guarded `/dashboard`, `/trips`, `/trips/new`, `/trips/:id/reservations`, `/bookings`, `/bookings/:reference`, `/reports`.
+- **Auth:** `AuthService` persists JWT + user in `localStorage`; `authInterceptor` attaches the token and logs the user out on 401; `authGuard` protects routes; `adminGuard` (in `guards/admin.guard.ts`) redirects non-admin users to `/dashboard` and is layered on top of `authGuard` for admin-only routes. `AuthService` exposes `isAdmin = computed(() => user()?.role === 'admin')` for template use.
+- **Roles:** users carry one of `UserRole = 'admin' | 'sales'` (centralized in `libs/shared-models`). **admin** = full access; **sales** = read-only across the dashboard but full booking lifecycle (create / edit passenger / cancel / reactivate / print / email). Admin-only UI affordances (the `/trips/new` sidebar link, the per-row Cancel button + modal on `/trips`, the "إرسال بالبريد" button + modal on `/reports`) are wrapped in `@if (auth.isAdmin())` and hidden entirely for sales users; backend enforcement is the source of truth (see Backend → "Authorization").
+- **Shell:** sticky topbar + right-side sidebar (Arabic/RTL). Sidebar links: `/dashboard`, `/trips`, `/trips/new` *(admin only)*, `/bookings`, `/reports`.
+- **Routes:** `/login`, `/accept-invitation/:token`, guarded `/dashboard`, `/trips`, `/trips/new` *(adminGuard)*, `/trips/:id/reservations`, `/bookings`, `/bookings/:reference`, `/reports`.
 - **Trips page:** lists company trips with date filter + pagination; per-row Cancel (reason dialog) and View Reservations.
 - **Reservations page:** shows the 10x4 seat layout via `<lib-seat-layout>` (read-only preview), a bookings table with Print (browser `window.print()` via a `.print-area` element + `@media print` in `styles.css`) and Email buttons, and a "new booking" modal that uses the same layout component for seat selection, allows per-seat gender toggle, and surfaces any gender-override warning returned by the backend.
 - **New Trip page (`/trips/new`):** date picker + stations editor (city dropdown, arrival/departure times, move up/down, remove, add) + auto-rendered upper-triangle pair-pricing list (one row per (i&lt;j) station pair). The `availableCities()` helper prevents selecting the same city twice. Client-side validation mirrors `DashboardTripsService.validate()` — ≥2 stations, no duplicates, first-departure/last-arrival required, monotonic times, every upper-triangle price &gt; 0 — and any backend BadRequestException is surfaced verbatim. On success, navigates back to `/trips`.
@@ -40,7 +41,8 @@ ticketshop-sy/
 - **Framework:** NestJS (TypeScript, Strict Mode)
 - **Persistence:** PostgreSQL via TypeORM (`synchronize: true` in development only).
 - **Feature modules:** `companies/`, `auth/`, `mail/`, `trips/`, `seats/`, `bookings/`, `dashboard/`.
-- **Auth:** JWT via `@nestjs/jwt` + `passport-jwt`. Users are created from invitations (CLI-only in v1). Endpoints: `POST /api/v1/auth/login`, `GET /api/v1/auth/invitations/:token`, `POST /api/v1/auth/invitations/:token/accept`, `GET /api/v1/auth/me`. Guard: `JwtAuthGuard`; decorator: `@CurrentUser()`.
+- **Auth:** JWT via `@nestjs/jwt` + `passport-jwt`. Users are created from invitations (CLI-only in v1). Endpoints: `POST /api/v1/auth/login`, `GET /api/v1/auth/invitations/:token`, `POST /api/v1/auth/invitations/:token/accept`, `GET /api/v1/auth/me`. Guard: `JwtAuthGuard`; decorator: `@CurrentUser()`. JWT payload carries `role: UserRole`; `JwtStrategy.validate()` rejects unknown roles with 401 (defends against legacy tokens — the frontend interceptor logs the user out and forces a re-login).
+- **Authorization (roles):** `UserRole = 'admin' | 'sales'` (imported from `@ticketshop-sy/shared-models`). `UserEntity.role` and `InvitationEntity.role` are non-null `text` columns; the role is fixed at invitation time and copied onto the user when the invite is accepted. Per-handler RBAC uses `@Roles(...roles)` (in `auth/decorators/roles.decorator.ts`) + `RolesGuard` (in `auth/guards/roles.guard.ts`); a handler with no `@Roles()` metadata stays open to both roles. Three endpoints are admin-only: `POST /api/v1/dashboard/trips`, `POST /api/v1/dashboard/trips/:id/cancel`, `POST /api/v1/dashboard/reports/email` — all other dashboard endpoints (including `POST /dashboard/bookings`, `PATCH .../bookings/:ref`, `POST .../cancel`, `POST .../reactivate`, `POST .../email`, and `POST /trips/:id/dismiss-cancellation`) are open to both `admin` and `sales`.
 - **Trips model:** a `TripEntity` is just `{ id, companyId, date }`. Route shape lives in `trip_stations` (cityId, order, arrivalTime, departureTime) and pricing lives in `trip_segment_prices` (fromCityId, toCityId, price, unique per trip+pair). Every ordered pair of stations on a trip has its own price (pair-priced). `TripsService.searchTrips(from, to, date)` finds trips whose stations include both cities with from.order < to.order and resolves the pair price.
 - **Bookings model:** `BookingEntity` persists the boarding/dropoff station IDs (`boardingStationId`, `dropoffStationId`) + passenger fields (`passengerName`, `passengerPhone`, `passengerEmail` nullable). Total price = pair price for (boarding, dropoff) × seat count. `CreateBookingDto` validates nested `passenger: { name, phone, email? }` and rejects invalid boarding/dropoff combinations (not on trip, reversed order, or no segment price).
 - **Dashboard trip creation:** `POST /api/v1/dashboard/trips` (guarded, scoped to the caller's `companyId`) via `DashboardTripsService.create()`; validates ≥2 unique stations, monotonic times, and a positive price for every (i<j) station pair.
@@ -52,7 +54,8 @@ ticketshop-sy/
 - **Dashboard reports:** `GET /api/v1/dashboard/reports?from=YYYY-MM-DD&to=YYYY-MM-DD` returns `{ totals, perDay, perRoute }` aggregated from confirmed bookings whose trip date falls in the inclusive range, scoped to the caller's `companyId`. `POST /api/v1/dashboard/reports/email` accepts `{ from, to, recipient }` and dispatches a rendered HTML body via the stub `EmailService`. `perRoute` is sorted by revenue desc; `perDay` by date asc. Invalid dates or inverted ranges → 400.
 - **Env vars (new):** `JWT_SECRET`, `JWT_EXPIRES_IN` (default `7d`), `DASHBOARD_BASE_URL` (used by the invite CLI when printing the acceptance URL).
 - **Seeder:** `npm run seed` (from the `backend` workspace) rebuilds companies → trips → mock bookings.
-- **Invite CLI:** `npm run invite --workspace backend -- --email=<email> --companyId=<uuid>` inserts an invitation row and prints the acceptance URL.
+- **Invite CLI:** `npm run invite --workspace backend -- --email=<email> --companyId=<uuid> --role=admin|sales` inserts an invitation row and prints the acceptance URL. `--role` is required; the role flows onto the created user when the invitation is accepted.
+- **Role migration CLI:** `npm run migrate:roles --workspace backend` is a one-shot script that flips any legacy `users.role = 'agent'` rows to `'admin'`. Run it once per environment after deploying the role rework, then it can be left alone (re-running is a no-op).
 
 ### Shared Library (libs/shared-models)
 - **Purpose:** Shared TypeScript types and interfaces between frontend and backend.
@@ -81,7 +84,8 @@ npm run build:admin   # Build admin dashboard for production
 npm run start:backend     # Run backend service
 npm run build:backend     # Build backend service
 npm run seed -w backend   # Rebuild companies → trips → mock bookings
-npm run invite -w backend -- --email=<email> --companyId=<uuid>   # Issue an invitation
+npm run invite -w backend -- --email=<email> --companyId=<uuid> --role=admin|sales   # Issue an invitation
+npm run migrate:roles -w backend   # One-shot: flip legacy role='agent' rows to 'admin'
 ```
 
 ## Flow (Customer App)
@@ -119,6 +123,14 @@ Changes that trigger this audit:
 - **Port / URL assumptions** — anything hardcoded to `localhost:3000` / `:4200` / `:4201` is a deploy-break.
 
 When in doubt, say so explicitly in the final summary ("⚠ This adds env var X — set it in Railway before deploying"). Silent breakage is the failure mode to avoid.
+
+### Role rework — one-time deployment notes
+
+The shift from a single `'agent'` role to `'admin' | 'sales'` requires a one-shot migration on each environment:
+
+1. **Deploy the backend.** TypeORM `synchronize: true` will add the new non-null `invitations.role` column. If unaccepted invitations exist on the target DB, the ALTER will fail — clear them (`DELETE FROM invitations WHERE accepted_at IS NULL`) before deploying, or stage the column as nullable first.
+2. **Run `npm run migrate:roles -w backend`** against the deployed DB to flip existing `users.role='agent'` → `'admin'`. Until this runs, those users will get 401s on every request (their JWT carries `role='agent'`, which the new `JwtStrategy.validate()` rejects), forcing them to re-login — but they cannot log in successfully because the login response would carry `'agent'`. Run the migration immediately after deploy.
+3. From now on, every `npm run invite` call must include `--role=admin|sales` (the flag is required).
 
 ## Development Notes
 

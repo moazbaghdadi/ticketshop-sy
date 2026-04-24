@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { UserRole } from '@ticketshop-sy/shared-models';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -7,7 +8,7 @@ export interface CurrentUser {
   id: string;
   email: string;
   companyId: string;
-  role: 'agent';
+  role: UserRole;
 }
 
 export interface AuthSession {
@@ -29,6 +30,7 @@ export class AuthService {
 
   readonly token = signal<string | null>(this.readToken());
   readonly user = signal<CurrentUser | null>(this.readUser());
+  readonly isAdmin = computed(() => this.user()?.role === 'admin');
 
   login(email: string, password: string): Observable<{ data: AuthSession }> {
     return this.http

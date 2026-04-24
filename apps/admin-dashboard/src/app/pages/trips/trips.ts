@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 import {
   DashboardTripListResult,
   DashboardTripSummary,
@@ -19,6 +20,7 @@ import {
 })
 export class TripsPage implements OnInit {
   private tripsService = inject(TripsService);
+  auth = inject(AuthService);
 
   date = signal<string>('');
   tripId = signal<string>('');

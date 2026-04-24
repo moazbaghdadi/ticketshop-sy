@@ -1,11 +1,11 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common'
-import { UserEntity } from '../entities/user.entity'
+import { UserRole } from '@ticketshop-sy/shared-models'
 
 export interface AuthenticatedUser {
     id: string
     email: string
     companyId: string
-    role: UserEntity['role']
+    role: UserRole
 }
 
 export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionContext): AuthenticatedUser => {
