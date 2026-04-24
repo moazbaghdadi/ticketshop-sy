@@ -1,8 +1,8 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
-import { getRepositoryToken } from '@nestjs/typeorm'
+import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm'
 import { BookingResponse } from '@ticketshop-sy/shared-models'
-import { Repository } from 'typeorm'
+import { DataSource, Repository } from 'typeorm'
 import { BookingsService } from '../bookings/bookings.service'
 import { CreateBookingDto } from '../bookings/dto/create-booking.dto'
 import { BookingEntity } from '../bookings/entities/booking.entity'
@@ -57,6 +57,10 @@ describe('DashboardBookingsService', () => {
                         findOne: jest.fn(),
                         save: jest.fn(),
                     },
+                },
+                {
+                    provide: getDataSourceToken(),
+                    useValue: { transaction: jest.fn() } as unknown as DataSource,
                 },
             ],
         }).compile()

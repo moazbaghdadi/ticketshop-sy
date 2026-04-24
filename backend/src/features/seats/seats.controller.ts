@@ -1,5 +1,5 @@
-import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common'
-import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common'
+import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { Seat } from '@ticketshop-sy/shared-models'
 import { SeatsService } from './seats.service'
 
@@ -16,8 +16,14 @@ export class SeatsController {
     @ApiOperation({ summary: 'Get seat layout for a trip' })
     @ApiOkResponse({ description: 'Seat layout with occupancy status' })
     @ApiNotFoundResponse({ description: 'Trip not found' })
-    async getSeats(@Param('tripId', ParseUUIDPipe) tripId: string): Promise<SeatsResponse> {
-        const seats = await this.seatsService.getSeatsForTrip(tripId)
+    @ApiQuery({ name: 'boardingStationId', required: false })
+    @ApiQuery({ name: 'dropoffStationId', required: false })
+    async getSeats(
+        @Param('tripId', ParseUUIDPipe) tripId: string,
+        @Query('boardingStationId') boardingStationId?: string,
+        @Query('dropoffStationId') dropoffStationId?: string
+    ): Promise<SeatsResponse> {
+        const seats = await this.seatsService.getSeatsForTrip(tripId, { boardingStationId, dropoffStationId })
         return { data: seats }
     }
 }

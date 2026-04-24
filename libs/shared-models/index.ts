@@ -91,3 +91,12 @@ export interface BookingResponse {
 export type UserRole = 'admin' | 'sales';
 
 export const USER_ROLES: readonly UserRole[] = ['admin', 'sales'];
+
+/**
+ * Returns true when the two half-open segments [aStart, aEnd) and [bStart, bEnd) overlap.
+ * Segments that merely touch (a.end == b.start) do NOT overlap — so a passenger dropping
+ * off at station X frees the seat for another passenger boarding at X.
+ */
+export function segmentsOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+  return aStart < bEnd && bStart < aEnd;
+}

@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
-import { getRepositoryToken } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { getDataSourceToken, getRepositoryToken } from '@nestjs/typeorm'
+import { DataSource, EntityManager, Repository } from 'typeorm'
 import { CompanyEntity } from '../companies/entities/company.entity'
 import { TripEntity } from '../trips/entities/trip.entity'
 import { TripSegmentPriceEntity } from '../trips/entities/trip-segment-price.entity'
@@ -14,6 +14,7 @@ describe('BookingsService', () => {
     let service: BookingsService
     let bookingRepository: jest.Mocked<Repository<BookingEntity>>
     let tripRepository: jest.Mocked<Repository<TripEntity>>
+    let manager: { findOne: jest.Mock; find: jest.Mock; create: jest.Mock; save: jest.Mock; getRepository: jest.Mock }
 
     const mockCompany: CompanyEntity = {
         id: 'company-uuid',
@@ -77,6 +78,22 @@ describe('BookingsService', () => {
     }
 
     beforeEach(async () => {
+        manager = {
+            findOne: jest.fn(),
+            find: jest.fn(),
+            create: jest.fn((_entity, data: Partial<BookingEntity>) => data),
+            save: jest.fn((entity: Partial<BookingEntity>) => ({
+                ...entity,
+                id: 'booking-uuid',
+                createdAt: new Date('2026-04-20T10:00:00Z'),
+            })),
+            getRepository: jest.fn(),
+        }
+
+        const dataSource = {
+            transaction: jest.fn(async (cb: (m: EntityManager) => Promise<unknown>) => cb(manager as unknown as EntityManager)),
+        } as unknown as DataSource
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 BookingsService,
@@ -99,12 +116,32 @@ describe('BookingsService', () => {
                         findOne: jest.fn(),
                     },
                 },
+                {
+                    provide: getDataSourceToken(),
+                    useValue: dataSource,
+                },
             ],
         }).compile()
 
         service = module.get<BookingsService>(BookingsService)
         bookingRepository = module.get(getRepositoryToken(BookingEntity))
         tripRepository = module.get(getRepositoryToken(TripEntity))
+
+        // Route the manager's per-entity operations to the right mocks.
+        manager.getRepository.mockImplementation((entity: unknown) => {
+            if (entity === BookingEntity) return bookingRepository
+            if (entity === TripEntity) return tripRepository
+            throw new Error(`Unexpected entity in manager.getRepository: ${String(entity)}`)
+        })
+        manager.findOne.mockImplementation((entity: unknown, options: unknown) => {
+            if (entity === TripEntity) return tripRepository.findOne(options as never)
+            if (entity === BookingEntity) return bookingRepository.findOne(options as never)
+            throw new Error(`Unexpected entity in manager.findOne: ${String(entity)}`)
+        })
+        manager.find.mockImplementation((entity: unknown, options: unknown) => {
+            if (entity === BookingEntity) return bookingRepository.find(options as never)
+            throw new Error(`Unexpected entity in manager.find: ${String(entity)}`)
+        })
     })
 
     it('creates a booking with the boarding→dropoff pair price', async () => {
@@ -174,6 +211,8 @@ describe('BookingsService', () => {
         tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([
             {
+                boardingStationId: 'damascus',
+                dropoffStationId: 'aleppo',
                 seatDetails: [{ id: 5, row: 1, col: 0, gender: 'female' }],
             } as BookingEntity,
         ])
@@ -184,11 +223,37 @@ describe('BookingsService', () => {
         tripRepository.findOne.mockResolvedValue(mockTrip)
         bookingRepository.find.mockResolvedValue([
             {
+                boardingStationId: 'damascus',
+                dropoffStationId: 'aleppo',
                 seatDetails: [{ id: 6, row: 1, col: 1, gender: 'female' }],
             } as BookingEntity,
         ])
 
         await expect(service.createBooking(validDto)).rejects.toThrow(UnprocessableEntityException)
+    })
+
+    it('allows reusing a seat on a non-overlapping segment', async () => {
+        tripRepository.findOne.mockResolvedValue(mockTrip)
+        // An existing booking on damascus→homs (orders 0→1) must not block a new
+        // booking on homs→aleppo (orders 1→2) for the same seat — segments are disjoint.
+        bookingRepository.find.mockResolvedValue([
+            {
+                boardingStationId: 'damascus',
+                dropoffStationId: 'homs',
+                seatDetails: [{ id: 5, row: 1, col: 0, gender: 'female' }],
+            } as BookingEntity,
+        ])
+        bookingRepository.findOne.mockResolvedValue(null)
+
+        const dto: CreateBookingDto = {
+            ...validDto,
+            boardingStationId: 'homs',
+            dropoffStationId: 'aleppo',
+            seatSelections: [{ seatId: 5, gender: 'male' }],
+        }
+
+        const result = await service.createBooking(dto)
+        expect(result.seats).toEqual([5])
     })
 
     it('multiplies pair price by seat count', async () => {

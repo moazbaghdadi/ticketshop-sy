@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Seat, SeatGender } from '@ticketshop-sy/shared-models';
+import { Seat, SeatGender, segmentsOverlap } from '@ticketshop-sy/shared-models';
 import { SeatLayoutComponent, SeatLayoutSelection } from '@ticketshop-sy/shared-ui';
 import {
   CreateDashboardBookingRequest,
@@ -28,12 +28,17 @@ export class ReservationsPage implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
 
-  seats = computed<Seat[]>(() => {
-    const d = this.detail();
-    if (!d) return [];
+  private buildSeatLayout(bookings: DashboardBookingSummary[], stationOrderMap: Map<string, number>, boardingOrder?: number, dropoffOrder?: number): Seat[] {
     const occupied = new Map<number, SeatGender>();
-    for (const b of d.bookings) {
+    for (const b of bookings) {
       if (b.status === 'cancelled') continue;
+      if (boardingOrder !== undefined && dropoffOrder !== undefined) {
+        const bOrder = stationOrderMap.get(b.boardingStationId);
+        const dOrder = stationOrderMap.get(b.dropoffStationId);
+        if (bOrder !== undefined && dOrder !== undefined) {
+          if (!segmentsOverlap(bOrder, dOrder, boardingOrder, dropoffOrder)) continue;
+        }
+      }
       for (const s of b.seatDetails) occupied.set(s.id, s.gender);
     }
     const seats: Seat[] = [];
@@ -41,15 +46,25 @@ export class ReservationsPage implements OnInit {
       const row = Math.floor((id - 1) / 4);
       const col = (id - 1) % 4;
       const gender = occupied.get(id);
-      seats.push({
-        id,
-        row,
-        col,
-        status: gender ? 'occupied' : 'available',
-        gender,
-      });
+      seats.push({ id, row, col, status: gender ? 'occupied' : 'available', gender });
     }
     return seats;
+  }
+
+  seats = computed<Seat[]>(() => {
+    const d = this.detail();
+    if (!d) return [];
+    const orderMap = new Map(d.stations.map(s => [s.cityId, s.order]));
+    return this.buildSeatLayout(d.bookings, orderMap);
+  });
+
+  newBookingSeats = computed<Seat[]>(() => {
+    const d = this.detail();
+    if (!d) return [];
+    const orderMap = new Map(d.stations.map(s => [s.cityId, s.order]));
+    const boardingOrder = orderMap.get(this.newBoarding());
+    const dropoffOrder = orderMap.get(this.newDropoff());
+    return this.buildSeatLayout(d.bookings, orderMap, boardingOrder, dropoffOrder);
   });
 
   showNewBooking = signal(false);

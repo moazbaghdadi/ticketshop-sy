@@ -1,13 +1,14 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { BookingResponse } from '@ticketshop-sy/shared-models'
-import { Repository } from 'typeorm'
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
+import { BookingResponse, segmentsOverlap } from '@ticketshop-sy/shared-models'
+import { DataSource, Repository } from 'typeorm'
 import { CITY_MAP } from '../../common/data/cities.data'
 import { BookingsService } from '../bookings/bookings.service'
 import { CreateBookingDto } from '../bookings/dto/create-booking.dto'
 import { BookingEntity } from '../bookings/entities/booking.entity'
 import { EmailService } from '../mail/email.service'
 import { TripEntity } from '../trips/entities/trip.entity'
+import { sortStations } from '../trips/trip.mapper'
 import { UpdateBookingDto } from './dto/update-booking.dto'
 
 export interface DashboardCreateBookingResult {
@@ -60,7 +61,9 @@ export class DashboardBookingsService {
         @InjectRepository(TripEntity)
         private readonly tripRepository: Repository<TripEntity>,
         @InjectRepository(BookingEntity)
-        private readonly bookingRepository: Repository<BookingEntity>
+        private readonly bookingRepository: Repository<BookingEntity>,
+        @InjectDataSource()
+        private readonly dataSource: DataSource
     ) {}
 
     async create(companyId: string, dto: CreateBookingDto): Promise<DashboardCreateBookingResult> {
@@ -191,22 +194,44 @@ export class DashboardBookingsService {
             throw new BadRequestException('لا يمكن إعادة تفعيل حجز على رحلة ملغاة')
         }
 
-        const others = await this.bookingRepository.find({
-            where: { tripId: booking.tripId, status: 'confirmed' },
-        })
-        const occupied = new Set<number>()
-        for (const other of others) {
-            if (other.id === booking.id) continue
-            for (const seatId of other.seatIds) occupied.add(seatId)
-        }
-        const conflicts = booking.seatIds.filter(id => occupied.has(id))
-        if (conflicts.length > 0) {
-            throw new ConflictException(`المقاعد [${conflicts.join('، ')}] قد حُجزت من قِبل آخرين — لا يمكن إعادة التفعيل`)
-        }
+        // Serialize with concurrent booking creates on the same trip via FOR UPDATE —
+        // ensures the seat-conflict check sees a consistent snapshot.
+        return this.dataSource.transaction(async manager => {
+            const trip = await manager.findOne(TripEntity, {
+                where: { id: booking.tripId },
+                relations: { stations: true },
+                lock: { mode: 'pessimistic_write' },
+            })
+            if (!trip) throw new NotFoundException('Trip not found')
 
-        booking.status = 'confirmed'
-        await this.bookingRepository.save(booking)
-        return this.bookingsService.toResponse(booking)
+            const sorted = sortStations(trip.stations ?? [])
+            const myBoarding = sorted.find(s => s.cityId === booking.boardingStationId)
+            const myDropoff = sorted.find(s => s.cityId === booking.dropoffStationId)
+
+            const others = await manager.find(BookingEntity, {
+                where: { tripId: booking.tripId, status: 'confirmed' },
+            })
+            const occupied = new Set<number>()
+            for (const other of others) {
+                if (other.id === booking.id) continue
+                if (myBoarding && myDropoff) {
+                    const otherBoarding = sorted.find(s => s.cityId === other.boardingStationId)
+                    const otherDropoff = sorted.find(s => s.cityId === other.dropoffStationId)
+                    if (otherBoarding && otherDropoff) {
+                        if (!segmentsOverlap(otherBoarding.order, otherDropoff.order, myBoarding.order, myDropoff.order)) continue
+                    }
+                }
+                for (const seatId of other.seatIds) occupied.add(seatId)
+            }
+            const conflicts = booking.seatIds.filter(id => occupied.has(id))
+            if (conflicts.length > 0) {
+                throw new ConflictException(`المقاعد [${conflicts.join('، ')}] قد حُجزت من قِبل آخرين — لا يمكن إعادة التفعيل`)
+            }
+
+            booking.status = 'confirmed'
+            await manager.save(BookingEntity, booking)
+            return this.bookingsService.toResponse(booking)
+        })
     }
 
     async emailTicket(companyId: string, reference: string): Promise<void> {

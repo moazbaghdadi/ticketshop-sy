@@ -26,9 +26,12 @@ export class ApiService {
       .pipe(map(res => res.data));
   }
 
-  getSeats(tripId: string): Observable<Seat[]> {
+  getSeats(tripId: string, boardingStationId?: string, dropoffStationId?: string): Observable<Seat[]> {
+    const params: Record<string, string> = {};
+    if (boardingStationId) params['boardingStationId'] = boardingStationId;
+    if (dropoffStationId) params['dropoffStationId'] = dropoffStationId;
     return this.http
-      .get<DataResponse<Seat[]>>(`${this.baseUrl}/trips/${tripId}/seats`)
+      .get<DataResponse<Seat[]>>(`${this.baseUrl}/trips/${tripId}/seats`, { params })
       .pipe(map(res => res.data));
   }
 

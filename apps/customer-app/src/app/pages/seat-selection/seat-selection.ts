@@ -57,7 +57,7 @@ export class SeatSelectionPage implements OnInit {
   ngOnInit(): void {
     const trip = this.booking.selectedTrip();
     if (!trip) return;
-    this.api.getSeats(trip.id).subscribe({
+    this.api.getSeats(trip.id, trip.from.id, trip.to.id).subscribe({
       next: seats => this.seats.set(seats),
     });
   }

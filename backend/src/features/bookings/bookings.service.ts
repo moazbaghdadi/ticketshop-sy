@@ -5,10 +5,10 @@ import {
     NotFoundException,
     UnprocessableEntityException,
 } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { BookingResponse, SeatGender } from '@ticketshop-sy/shared-models'
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
+import { BookingResponse, SeatGender, segmentsOverlap } from '@ticketshop-sy/shared-models'
 import { randomBytes } from 'crypto'
-import { Repository } from 'typeorm'
+import { DataSource, EntityManager, Repository } from 'typeorm'
 import { CITY_MAP } from '../../common/data/cities.data'
 import { TripEntity } from '../trips/entities/trip.entity'
 import { findSegmentPrice, sortStations, toTripForPair } from '../trips/trip.mapper'
@@ -21,7 +21,9 @@ export class BookingsService {
         @InjectRepository(BookingEntity)
         private readonly bookingRepository: Repository<BookingEntity>,
         @InjectRepository(TripEntity)
-        private readonly tripRepository: Repository<TripEntity>
+        private readonly tripRepository: Repository<TripEntity>,
+        @InjectDataSource()
+        private readonly dataSource: DataSource
     ) {}
 
     async createBooking(dto: CreateBookingDto): Promise<BookingResponse> {
@@ -33,9 +35,21 @@ export class BookingsService {
         dto: CreateBookingDto,
         opts: { enforceGender: boolean }
     ): Promise<{ booking: BookingResponse; warning: string | null; trip: TripEntity }> {
-        const trip = await this.tripRepository.findOne({
+        // Serialize concurrent booking creation for the same trip via a FOR UPDATE lock
+        // on the trip row — prevents two transactions from racing past the seat-occupancy
+        // check and double-booking an overlapping seat+segment.
+        return this.dataSource.transaction(async manager => this.createBookingTx(manager, dto, opts))
+    }
+
+    private async createBookingTx(
+        manager: EntityManager,
+        dto: CreateBookingDto,
+        opts: { enforceGender: boolean }
+    ): Promise<{ booking: BookingResponse; warning: string | null; trip: TripEntity }> {
+        const trip = await manager.findOne(TripEntity, {
             where: { id: dto.tripId },
             relations: { company: true, stations: true, segmentPrices: true },
+            lock: { mode: 'pessimistic_write' },
         })
         if (!trip) {
             throw new NotFoundException(`Trip ${dto.tripId} not found`)
@@ -56,10 +70,16 @@ export class BookingsService {
             throw new UnprocessableEntityException(`Trip ${trip.id} has no price for ${boarding.cityId} → ${dropoff.cityId}`)
         }
 
-        const existingBookings = await this.bookingRepository.find({ where: { tripId: dto.tripId } })
+        const existingBookings = await manager.find(BookingEntity, {
+            where: { tripId: dto.tripId, status: 'confirmed' },
+        })
         const occupiedSeats = new Map<number, SeatGender>()
-        for (const booking of existingBookings) {
-            for (const detail of booking.seatDetails) {
+        for (const existing of existingBookings) {
+            const existBoarding = sorted.find(s => s.cityId === existing.boardingStationId)
+            const existDropoff = sorted.find(s => s.cityId === existing.dropoffStationId)
+            if (!existBoarding || !existDropoff) continue
+            if (!segmentsOverlap(existBoarding.order, existDropoff.order, boarding.order, dropoff.order)) continue
+            for (const detail of existing.seatDetails) {
                 occupiedSeats.set(detail.id, detail.gender)
             }
         }
@@ -92,7 +112,7 @@ export class BookingsService {
             }
         }
 
-        const reference = await this.generateUniqueReference()
+        const reference = await this.generateUniqueReference(manager)
 
         const seatDetails = dto.seatSelections.map(sel => ({
             id: sel.seatId,
@@ -104,7 +124,7 @@ export class BookingsService {
         const tripDto = toTripForPair(trip, boarding.cityId, dropoff.cityId)
         const totalPrice = pairPrice * dto.seatSelections.length
 
-        const booking = this.bookingRepository.create({
+        const booking = manager.create(BookingEntity, {
             reference,
             tripId: trip.id,
             tripSnapshot: {
@@ -138,7 +158,7 @@ export class BookingsService {
             passengerEmail: dto.passenger.email ?? null,
         })
 
-        const saved = await this.bookingRepository.save(booking)
+        const saved = await manager.save(booking)
 
         return { booking: this.toResponse(saved), warning, trip }
     }
@@ -211,10 +231,11 @@ export class BookingsService {
         }
     }
 
-    private async generateUniqueReference(): Promise<string> {
+    private async generateUniqueReference(manager?: EntityManager): Promise<string> {
+        const repo = manager ? manager.getRepository(BookingEntity) : this.bookingRepository
         for (let attempt = 0; attempt < 10; attempt++) {
             const ref = 'SY-' + randomBytes(3).toString('hex').toUpperCase()
-            const existing = await this.bookingRepository.findOne({ where: { reference: ref } })
+            const existing = await repo.findOne({ where: { reference: ref } })
             if (!existing) return ref
         }
         throw new Error('Failed to generate unique booking reference after 10 attempts')
