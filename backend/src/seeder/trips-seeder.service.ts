@@ -138,7 +138,7 @@ export class TripsSeederService {
         private readonly tripRepository: Repository<TripEntity>
     ) {}
 
-    async seed(companies: CompanyEntity[], daysAhead: number = 7): Promise<number> {
+    async seed(companies: CompanyEntity[], daysBehind: number = 30, daysAhead: number = 7): Promise<number> {
         if (companies.length === 0) {
             throw new Error('TripsSeederService.seed requires at least one company')
         }
@@ -148,7 +148,7 @@ export class TripsSeederService {
         const today = new Date()
         let total = 0
 
-        for (let dayOffset = 0; dayOffset < daysAhead; dayOffset++) {
+        for (let dayOffset = -daysBehind; dayOffset < daysAhead; dayOffset++) {
             const d = new Date(today)
             d.setDate(d.getDate() + dayOffset)
             const dateStr = d.toISOString().split('T')[0]!

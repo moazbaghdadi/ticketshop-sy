@@ -9,6 +9,29 @@ import { seededRandom } from './trips-seeder.service'
 
 const OCCUPANCY_RATE = 0.3
 
+const PASSENGER_NAMES = [
+    'أحمد علي',
+    'محمد خالد',
+    'فاطمة حسن',
+    'ليلى عمر',
+    'يوسف إبراهيم',
+    'نور الدين سمير',
+    'رامي سعيد',
+    'سارة محمود',
+    'خديجة أحمد',
+    'عمر ناصر',
+    'هند كريم',
+    'زينب فؤاد',
+    'مالك جابر',
+    'ريم طارق',
+    'سامي رضا',
+    'ياسمين حسين',
+    'بشار قاسم',
+    'جمانة شاهين',
+    'كريم المصري',
+    'رنا العبد الله',
+]
+
 interface SeatDetail {
     id: number
     row: number
@@ -72,6 +95,11 @@ export class BookingsSeederService {
 
             const tripDto = toTripForPair(trip, origin.cityId, terminus.cityId)
             const mockRef = `MOCK-${trip.id.replace(/-/g, '').substring(0, 12).toUpperCase()}`
+            const passengerName = PASSENGER_NAMES[Math.floor(rand() * PASSENGER_NAMES.length)]!
+            const phoneSuffix = Math.floor(rand() * 100_000_000)
+                .toString()
+                .padStart(8, '0')
+            const passengerPhone = `+9639${phoneSuffix}`
             batch.push({
                 reference: mockRef,
                 tripId: trip.id,
@@ -98,11 +126,11 @@ export class BookingsSeederService {
                 seatDetails: occupiedSeats,
                 paymentMethod: 'sham-cash',
                 totalPrice: pairPrice * occupiedSeats.length,
-                status: 'mock',
+                status: 'confirmed',
                 boardingStationId: origin.cityId,
                 dropoffStationId: terminus.cityId,
-                passengerName: 'زبون تجريبي',
-                passengerPhone: '+963900000000',
+                passengerName,
+                passengerPhone,
                 passengerEmail: null,
             })
             totalBookings++
