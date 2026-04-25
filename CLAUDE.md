@@ -131,8 +131,8 @@ When in doubt, say so explicitly in the final summary ("⚠ This adds env var X 
 
 The shift from a single `'agent'` role to `'admin' | 'sales'` requires a one-shot migration on each environment:
 
-1. **Deploy the backend.** TypeORM `synchronize: true` will add the new non-null `invitations.role` column. If unaccepted invitations exist on the target DB, the ALTER will fail — clear them (`DELETE FROM invitations WHERE accepted_at IS NULL`) before deploying, or stage the column as nullable first.
-2. **Run `npm run migrate:roles -w backend`** against the deployed DB to flip existing `users.role='agent'` → `'admin'`. Until this runs, those users will get 401s on every request (their JWT carries `role='agent'`, which the new `JwtStrategy.validate()` rejects), forcing them to re-login — but they cannot log in successfully because the login response would carry `'agent'`. Run the migration immediately after deploy.
+1. **Deploy the backend.** Both `main.ts` and `seeder/seed.ts` call `ensureRoleColumnBackfilled()` (in `backend/src/common/bootstrap/ensure-role-column.ts`) before NestFactory boots — it adds `users.role` and `invitations.role` as nullable if missing and backfills any nulls to `'admin'`, so TypeORM's subsequent `synchronize: true` can mark the columns NOT NULL without tripping `column "role" contains null values`. Idempotent and safe to leave in place.
+2. **Run `npm run migrate:roles -w backend`** against the deployed DB to flip existing `users.role='agent'` → `'admin'`. Until this runs, those users will get 401s on every request (their JWT carries `role='agent'`, which the new `JwtStrategy.validate()` rejects), forcing them to re-login — but they cannot log in successfully because the login response would carry `'agent'`. Run the migration immediately after deploy. (Not needed on environments that never had `'agent'` rows — the pre-sync backfill above handles fresh-from-null cases.)
 3. From now on, every `npm run invite` call must include `--role=admin|sales` (the flag is required).
 
 ## Development Notes

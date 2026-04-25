@@ -3,9 +3,11 @@ import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module'
+import { ensureRoleColumnBackfilled } from './common/bootstrap/ensure-role-column'
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter'
 
 async function bootstrap(): Promise<void> {
+    await ensureRoleColumnBackfilled()
     const app = await NestFactory.create(AppModule)
 
     const configService = app.get(ConfigService)

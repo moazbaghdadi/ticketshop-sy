@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
+import { DataSource } from 'typeorm'
 import { BookingsSeederService } from './bookings-seeder.service'
 import { CompaniesSeederService } from './companies-seeder.service'
 import { TripsSeederService } from './trips-seeder.service'
@@ -10,11 +11,15 @@ export class SeederService {
     constructor(
         private readonly companiesSeeder: CompaniesSeederService,
         private readonly tripsSeeder: TripsSeederService,
-        private readonly bookingsSeeder: BookingsSeederService
+        private readonly bookingsSeeder: BookingsSeederService,
+        private readonly dataSource: DataSource
     ) {}
 
     async seed(): Promise<void> {
         this.logger.log('Starting database seed...')
+
+        this.logger.log('Wiping previous trips and bookings...')
+        await this.dataSource.query('TRUNCATE TABLE "bookings", "trips" RESTART IDENTITY CASCADE')
 
         const companies = await this.companiesSeeder.seed()
         this.logger.log(`Seeded ${companies.length} companies`)

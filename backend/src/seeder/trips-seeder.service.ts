@@ -142,7 +142,6 @@ export class TripsSeederService {
         if (companies.length === 0) {
             throw new Error('TripsSeederService.seed requires at least one company')
         }
-        await this.tripRepository.query('TRUNCATE TABLE "trips" CASCADE')
 
         const companyIds = companies.map(c => c.id)
         const today = new Date()
