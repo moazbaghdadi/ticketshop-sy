@@ -236,6 +236,20 @@
   background: var(--color-primary-light);
 }
 
+.chart-card .chart-box {
+  position: relative;
+  height: 260px;
+  width: 100%;
+}
+
+.chart-card .chart-box--short {
+  height: 220px;
+}
+
+.chart-card canvas {
+  max-width: 100%;
+}
+
 .secondary-btn {
   background: transparent;
   border: 1px solid var(--color-primary);

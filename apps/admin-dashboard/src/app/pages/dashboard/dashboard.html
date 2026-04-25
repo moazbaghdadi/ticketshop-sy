@@ -72,6 +72,44 @@
         }
       </section>
 
+      <section class="card wide chart-card">
+        <header>
+          <span class="material-icons">trending_up</span>
+          <h2>إيرادات آخر 30 يوم</h2>
+        </header>
+        @if (data.salesLast30Days && data.salesLast30Days.length > 0) {
+          <div class="chart-box">
+            <canvas
+              baseChart
+              [type]="'line'"
+              [data]="revenueTrendData()"
+              [options]="revenueTrendOptions"
+            ></canvas>
+          </div>
+        } @else {
+          <p class="empty">لا توجد بيانات لعرضها</p>
+        }
+      </section>
+
+      <section class="card wide chart-card">
+        <header>
+          <span class="material-icons">route</span>
+          <h2>أهم المسارات (آخر 30 يوم)</h2>
+        </header>
+        @if (data.topRoutes && data.topRoutes.length > 0) {
+          <div class="chart-box chart-box--short">
+            <canvas
+              baseChart
+              [type]="'bar'"
+              [data]="topRoutesData()"
+              [options]="topRoutesOptions"
+            ></canvas>
+          </div>
+        } @else {
+          <p class="empty">لا توجد مسارات لعرضها</p>
+        }
+      </section>
+
       <section class="card wide">
         <header>
           <span class="material-icons">receipt_long</span>

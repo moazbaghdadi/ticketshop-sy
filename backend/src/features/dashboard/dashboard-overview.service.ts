@@ -36,16 +36,35 @@ export interface CancelledTripSummary {
     cancelledReason: string
 }
 
+export interface SalesDayPoint {
+    date: string
+    revenue: number
+    bookings: number
+}
+
+export interface TopRouteSummary {
+    fromCityId: string
+    fromCity: string
+    toCityId: string
+    toCity: string
+    revenue: number
+    bookings: number
+}
+
 export interface DashboardOverview {
     upcomingTrips: UpcomingTripSummary[]
     latestSales: LatestSaleSummary[]
     balance: number
     cancelledTrips: CancelledTripSummary[]
+    salesLast30Days: SalesDayPoint[]
+    topRoutes: TopRouteSummary[]
 }
 
 const UPCOMING_LIMIT = 5
 const SALES_LIMIT = 10
 const CANCELLATION_WINDOW_DAYS = 30
+const CHART_WINDOW_DAYS = 30
+const TOP_ROUTES_LIMIT = 5
 
 @Injectable()
 export class DashboardOverviewService {
@@ -60,15 +79,27 @@ export class DashboardOverviewService {
 
     async getOverview(userId: string, companyId: string): Promise<DashboardOverview> {
         const today = new Date().toISOString().slice(0, 10)
+        const windowStartDate = new Date()
+        windowStartDate.setDate(windowStartDate.getDate() - (CHART_WINDOW_DAYS - 1))
+        const windowStart = windowStartDate.toISOString().slice(0, 10)
 
-        const [upcoming, latestSales, balance, cancelled] = await Promise.all([
+        const [upcoming, latestSales, balance, cancelled, salesLast30Days, topRoutes] = await Promise.all([
             this.loadUpcoming(companyId, today),
             this.loadLatestSales(companyId),
             this.loadBalance(companyId),
             this.loadCancelled(userId, companyId),
+            this.loadSalesLast30Days(companyId, windowStart, today),
+            this.loadTopRoutes(companyId, windowStart, today),
         ])
 
-        return { upcomingTrips: upcoming, latestSales, balance, cancelledTrips: cancelled }
+        return {
+            upcomingTrips: upcoming,
+            latestSales,
+            balance,
+            cancelledTrips: cancelled,
+            salesLast30Days,
+            topRoutes,
+        }
     }
 
     private async loadUpcoming(companyId: string, today: string): Promise<UpcomingTripSummary[]> {
@@ -177,5 +208,65 @@ export class DashboardOverviewService {
                     cancelledReason: t.cancelledReason ?? '',
                 }
             })
+    }
+
+    private async loadSalesLast30Days(companyId: string, from: string, to: string): Promise<SalesDayPoint[]> {
+        const rows = await this.bookingRepository
+            .createQueryBuilder('booking')
+            .innerJoin(TripEntity, 'trip', 'trip.id = booking.tripId')
+            .where('trip.companyId = :companyId', { companyId })
+            .andWhere('booking.status = :status', { status: 'confirmed' })
+            .andWhere('trip.date >= :from', { from })
+            .andWhere('trip.date <= :to', { to })
+            .select('trip.date', 'date')
+            .addSelect('COALESCE(SUM(booking.totalPrice), 0)', 'revenue')
+            .addSelect('COUNT(booking.id)', 'bookings')
+            .groupBy('trip.date')
+            .getRawMany<{ date: string | Date; revenue: string; bookings: string }>()
+
+        const byDate = new Map<string, { revenue: number; bookings: number }>()
+        for (const r of rows) {
+            const key = typeof r.date === 'string' ? r.date : r.date.toISOString().slice(0, 10)
+            byDate.set(key, { revenue: Number(r.revenue), bookings: Number(r.bookings) })
+        }
+
+        const out: SalesDayPoint[] = []
+        const cursor = new Date(from)
+        const end = new Date(to)
+        while (cursor <= end) {
+            const key = cursor.toISOString().slice(0, 10)
+            const agg = byDate.get(key) ?? { revenue: 0, bookings: 0 }
+            out.push({ date: key, revenue: agg.revenue, bookings: agg.bookings })
+            cursor.setDate(cursor.getDate() + 1)
+        }
+        return out
+    }
+
+    private async loadTopRoutes(companyId: string, from: string, to: string): Promise<TopRouteSummary[]> {
+        const rows = await this.bookingRepository
+            .createQueryBuilder('booking')
+            .innerJoin(TripEntity, 'trip', 'trip.id = booking.tripId')
+            .where('trip.companyId = :companyId', { companyId })
+            .andWhere('booking.status = :status', { status: 'confirmed' })
+            .andWhere('trip.date >= :from', { from })
+            .andWhere('trip.date <= :to', { to })
+            .select('booking.boardingStationId', 'fromCityId')
+            .addSelect('booking.dropoffStationId', 'toCityId')
+            .addSelect('COALESCE(SUM(booking.totalPrice), 0)', 'revenue')
+            .addSelect('COUNT(booking.id)', 'bookings')
+            .groupBy('booking.boardingStationId')
+            .addGroupBy('booking.dropoffStationId')
+            .orderBy('revenue', 'DESC')
+            .limit(TOP_ROUTES_LIMIT)
+            .getRawMany<{ fromCityId: string; toCityId: string; revenue: string; bookings: string }>()
+
+        return rows.map(r => ({
+            fromCityId: r.fromCityId,
+            fromCity: CITY_MAP.get(r.fromCityId)?.nameAr ?? r.fromCityId,
+            toCityId: r.toCityId,
+            toCity: CITY_MAP.get(r.toCityId)?.nameAr ?? r.toCityId,
+            revenue: Number(r.revenue),
+            bookings: Number(r.bookings),
+        }))
     }
 }

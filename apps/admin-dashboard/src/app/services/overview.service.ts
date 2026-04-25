@@ -32,11 +32,28 @@ export interface CancelledTripSummary {
   cancelledReason: string;
 }
 
+export interface SalesDayPoint {
+  date: string;
+  revenue: number;
+  bookings: number;
+}
+
+export interface TopRouteSummary {
+  fromCityId: string;
+  fromCity: string;
+  toCityId: string;
+  toCity: string;
+  revenue: number;
+  bookings: number;
+}
+
 export interface DashboardOverview {
   upcomingTrips: UpcomingTripSummary[];
   latestSales: LatestSaleSummary[];
   balance: number;
   cancelledTrips: CancelledTripSummary[];
+  salesLast30Days: SalesDayPoint[];
+  topRoutes: TopRouteSummary[];
 }
 
 @Injectable({ providedIn: 'root' })
