@@ -1,4 +1,16 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    HttpCode,
+    Param,
+    Patch,
+    Post,
+    Query,
+    StreamableFile,
+    UseGuards,
+} from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { BookingResponse } from '@ticketshop-sy/shared-models'
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator'
@@ -60,6 +72,42 @@ export class DashboardBookingsController {
             page: Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1,
         })
         return { data }
+    }
+
+    @Get('export')
+    @ApiOperation({ summary: 'Export bookings as CSV (UTF-8 with BOM, Excel-friendly)' })
+    @ApiQuery({ name: 'query', required: false, description: 'Matches reference, passenger name, or phone (substring)' })
+    @ApiQuery({ name: 'date', required: false, description: 'Filter by trip date (YYYY-MM-DD)' })
+    @ApiQuery({ name: 'status', required: false, enum: ['all', 'past', 'ongoing', 'cancelled'] })
+    async exportCsv(
+        @CurrentUser() user: AuthenticatedUser,
+        @Query('query') query?: string,
+        @Query('date') date?: string,
+        @Query('status') status?: string
+    ): Promise<StreamableFile> {
+        const trimmedQuery = query?.trim() || undefined
+        const validatedDate = date && DATE_RE.test(date) ? date : undefined
+
+        let validatedStatus: BookingStatusFilter | undefined
+        if (status !== undefined) {
+            if (!(STATUS_VALUES as readonly string[]).includes(status)) {
+                throw new BadRequestException(`status must be one of: ${STATUS_VALUES.join(', ')}`)
+            }
+            validatedStatus = status as BookingStatusFilter
+        }
+
+        const csv = await this.dashboardBookingsService.exportCsv(user.companyId, {
+            query: trimmedQuery,
+            date: validatedDate,
+            status: validatedStatus,
+        })
+
+        const filename = `bookings-${new Date().toISOString().slice(0, 10)}.csv`
+        const buffer = Buffer.from('\ufeff' + csv, 'utf-8')
+        return new StreamableFile(buffer, {
+            type: 'text/csv; charset=utf-8',
+            disposition: `attachment; filename="${filename}"`,
+        })
     }
 
     @Get(':reference')

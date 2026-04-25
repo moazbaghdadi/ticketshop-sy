@@ -51,7 +51,27 @@ export interface BookingsSearchResult {
     pageSize: number
 }
 
+export interface ExportBookingsOptions {
+    query?: string
+    date?: string
+    status?: BookingStatusFilter
+}
+
 const BOOKING_PAGE_SIZE = 20
+
+const STATUS_LABEL_AR: Record<string, string> = {
+    confirmed: 'مؤكَّد',
+    cancelled: 'ملغى',
+}
+
+function csvEscape(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) return ''
+    const str = typeof value === 'number' ? value.toString(10) : value
+    if (/[",\r\n]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`
+    }
+    return str
+}
 
 @Injectable()
 export class DashboardBookingsService {
@@ -146,6 +166,83 @@ export class DashboardBookingsService {
         })
 
         return { bookings, total, page, pageSize: BOOKING_PAGE_SIZE }
+    }
+
+    async exportCsv(companyId: string, opts: ExportBookingsOptions): Promise<string> {
+        const qb = this.bookingRepository
+            .createQueryBuilder('booking')
+            .innerJoin(TripEntity, 'trip', 'trip.id = booking.tripId')
+            .where('trip.companyId = :companyId', { companyId })
+
+        if (opts.query) {
+            const like = `%${opts.query.trim()}%`
+            qb.andWhere(
+                '(booking.reference ILIKE :like OR booking.passengerName ILIKE :like OR booking.passengerPhone ILIKE :like)',
+                { like }
+            )
+        }
+
+        if (opts.date) {
+            qb.andWhere('trip.date = :date', { date: opts.date })
+        }
+
+        if (opts.status === 'cancelled') {
+            qb.andWhere(`booking.status = 'cancelled'`)
+        } else if (opts.status === 'ongoing') {
+            qb.andWhere(`booking.status = 'confirmed'`).andWhere('trip.date >= CURRENT_DATE')
+        } else if (opts.status === 'past') {
+            qb.andWhere(`booking.status = 'confirmed'`).andWhere('trip.date < CURRENT_DATE')
+        }
+
+        qb.orderBy('booking.createdAt', 'DESC')
+        const rows = await qb.getMany()
+
+        const tripIds = Array.from(new Set(rows.map(r => r.tripId)))
+        const trips = tripIds.length > 0 ? await this.tripRepository.find({ where: tripIds.map(id => ({ id })) }) : []
+        const tripById = new Map(trips.map(t => [t.id, t]))
+
+        const headers = [
+            'رقم الحجز',
+            'اسم الراكب',
+            'الهاتف',
+            'البريد الإلكتروني',
+            'المقاعد',
+            'محطة الانطلاق',
+            'محطة الوصول',
+            'تاريخ الرحلة',
+            'السعر الإجمالي',
+            'طريقة الدفع',
+            'الحالة',
+            'تاريخ الإنشاء',
+        ]
+
+        const lines: string[] = [headers.map(csvEscape).join(',')]
+        for (const b of rows) {
+            const trip = tripById.get(b.tripId)
+            const tripDate = trip?.date ?? b.tripSnapshot.date
+            const boarding = CITY_MAP.get(b.boardingStationId)?.nameAr ?? b.boardingStationId
+            const dropoff = CITY_MAP.get(b.dropoffStationId)?.nameAr ?? b.dropoffStationId
+            const statusAr = STATUS_LABEL_AR[b.status] ?? b.status
+            lines.push(
+                [
+                    b.reference,
+                    b.passengerName,
+                    b.passengerPhone,
+                    b.passengerEmail ?? '',
+                    b.seatIds.join('; '),
+                    boarding,
+                    dropoff,
+                    tripDate,
+                    b.totalPrice,
+                    b.paymentMethod,
+                    statusAr,
+                    b.createdAt.toISOString(),
+                ]
+                    .map(csvEscape)
+                    .join(',')
+            )
+        }
+        return lines.join('\r\n')
     }
 
     async findOne(companyId: string, reference: string): Promise<BookingResponse> {
