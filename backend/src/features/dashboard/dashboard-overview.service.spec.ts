@@ -20,8 +20,13 @@ describe('DashboardOverviewService', () => {
             orderBy: jest.fn().mockReturnThis(),
             take: jest.fn().mockReturnThis(),
             select: jest.fn().mockReturnThis(),
+            addSelect: jest.fn().mockReturnThis(),
+            groupBy: jest.fn().mockReturnThis(),
+            addGroupBy: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
             getMany: jest.fn().mockResolvedValue(records),
             getRawOne: jest.fn().mockResolvedValue({ sum: String(sum) }),
+            getRawMany: jest.fn().mockResolvedValue([]),
         }
         return qb as unknown as SelectQueryBuilder<BookingEntity>
     }
