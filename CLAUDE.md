@@ -122,7 +122,7 @@ Changes that trigger this audit:
 - **API contract changes** (new routes, renamed response fields, new required request fields, changed base path) → both frontends consume the backend, so contract drift breaks the deployed apps even if local `npm run start:*` works.
 - **Routing changes in admin-dashboard** → SPA needs the `_redirects` rule; verify a new top-level route still resolves after a hard refresh on Netlify.
 - **Shared-models changes** → both frontends re-bundle; verify both builds pass, not just the one being edited.
-- **Database schema changes** → `synchronize: true` runs in dev; on Railway this means a deploy can silently alter the prod schema. Flag any entity/column change loudly.
+- **Database schema changes** → write a TypeORM migration in the same PR. Do **not** rely on `synchronize: true` to apply schema changes on Railway, and do **not** propose re-running the seeder as a recovery path — both leave dead-tuple bloat that filled the 500 MB Railway volume on 2026-04-26 and crash-looped Postgres. One-shot bootstrap helpers (e.g. `ensureRoleColumnBackfilled()`) are a smell; prefer an explicit migration. The seeder runs once per environment at bootstrap; after that, real data only.
 - **Port / URL assumptions** — anything hardcoded to `localhost:3000` / `:4200` / `:4201` is a deploy-break.
 
 When in doubt, say so explicitly in the final summary ("⚠ This adds env var X — set it in Railway before deploying"). Silent breakage is the failure mode to avoid.
