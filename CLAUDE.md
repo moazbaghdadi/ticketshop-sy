@@ -42,7 +42,7 @@ ticketshop-sy/
 ### Backend (backend)
 - **Runtime:** Node.js
 - **Framework:** NestJS (TypeScript, Strict Mode)
-- **Persistence:** PostgreSQL via TypeORM (`synchronize: true` in development only).
+- **Persistence:** PostgreSQL via TypeORM (`synchronize: true` is gated on `NODE_ENV === 'development'`). The self-hosted Proxmox deploy currently runs with `NODE_ENV=development` so the empty schema gets auto-built; flip to `production` and write proper migrations before real customer data lands.
 - **Feature modules:** `companies/`, `auth/`, `mail/`, `drivers/`, `trips/`, `trip-templates/`, `seats/`, `bookings/`, `dashboard/`.
 - **Auth:** JWT via `@nestjs/jwt` + `passport-jwt`. Users are created from invitations (CLI-only in v1). Endpoints: `POST /api/v1/auth/login`, `GET /api/v1/auth/invitations/:token`, `POST /api/v1/auth/invitations/:token/accept`, `GET /api/v1/auth/me`. Guard: `JwtAuthGuard`; decorator: `@CurrentUser()`. `JwtStrategy.validate()` re-loads the user from DB on every request and uses the row's *current* `companyId` and `role`, ignoring whatever was signed into the token — a deleted user 401s, and a stale-token holder transparently picks up their current company without having to re-login. (Defends against the Railway 2026-04-26 stale-JWT bug where orphan drivers had been created against a deleted `companyId` because the JWT's value was being trusted.)
 - **Authorization (roles):** `UserRole = 'admin' | 'sales'` (imported from `@ticketshop-sy/shared-models`). `UserEntity.role` and `InvitationEntity.role` are non-null `text` columns; the role is fixed at invitation time and copied onto the user when the invite is accepted. Per-handler RBAC uses `@Roles(...roles)` (in `auth/decorators/roles.decorator.ts`) + `RolesGuard` (in `auth/guards/roles.guard.ts`); a handler with no `@Roles()` metadata stays open to both roles. Admin-only surfaces: every `/dashboard/drivers/*` and `/dashboard/trip-templates/*` endpoint, plus `POST /dashboard/trips`, `POST /dashboard/trips/:id/cancel`, `POST /dashboard/trips/:id/save-as-template`, and `POST /dashboard/reports/email`. All other dashboard endpoints (including `POST /dashboard/bookings`, `PATCH .../bookings/:ref`, `POST .../cancel`, `POST .../reactivate`, `POST .../email`, and `POST /trips/:id/dismiss-cancellation`) stay open to both `admin` and `sales`.
@@ -60,7 +60,7 @@ ticketshop-sy/
 - **Dashboard trips list:** `GET /api/v1/dashboard/trips?date=&page=` (pageSize 20, sorted by date desc) and `GET /api/v1/dashboard/trips/:id/bookings` (trip detail + bookings). Both scoped to the caller's `companyId` (cross-company returns 403 from the `bookings` endpoint; the list endpoint simply filters).
 - **Dashboard bookings:** `POST /api/v1/dashboard/bookings` accepts the same `CreateBookingDto` as the customer endpoint but calls `BookingsService.createBookingInternal({ enforceGender: false })`; the response envelope is `{ data: BookingResponse, warning: string | null }` — a gender violation surfaces in `warning` without blocking. `POST /api/v1/dashboard/bookings/:reference/email` sends a stub email for the booking (400 if no `passengerEmail`, 403 cross-company). `GET /api/v1/dashboard/bookings?query=&date=&status=&page=` (pageSize 20, ordered by `createdAt DESC`) returns `{ bookings, total, page, pageSize }` scoped to the caller's `companyId`; `query` ILIKE-matches any of reference / passenger name / phone; `status ∈ past | ongoing | cancelled | all` — `past` and `ongoing` imply `booking.status='confirmed'` and compare `trip.date` against `CURRENT_DATE`, while `cancelled` matches `booking.status='cancelled'` (covers both per-booking and trip-cascade cancellations). `GET /dashboard/bookings/:reference` and `PATCH /dashboard/bookings/:reference` return / update a single booking — PATCH accepts `{ passenger: { name?, phone?, email? } }` only and 400s if the booking is cancelled (nudging the agent to Reactivate). `POST .../cancel` flips `status='confirmed' → 'cancelled'` (400 if already cancelled or trip-level cancelled). `POST .../reactivate` flips it back after re-scanning other confirmed bookings on the trip for seat conflicts → 409 with the overlapping seat numbers if any; 400 if the trip itself is cancelled. `GET /api/v1/dashboard/bookings/export?query=&date=&status=` returns the same filtered set as the search endpoint (no pagination) as a UTF-8 BOM-prefixed CSV (`text/csv`, `Content-Disposition: attachment; filename="bookings-YYYY-MM-DD.csv"`); Arabic headers, status translated (`مؤكَّد` / `ملغى`), commas in passenger names are RFC-4180 quoted — opens cleanly in Excel. All routes are company-scoped via `JwtAuthGuard` + `booking.trip.companyId` check → 403 cross-company.
 - **Dashboard reports:** `GET /api/v1/dashboard/reports?from=YYYY-MM-DD&to=YYYY-MM-DD` returns `{ totals, perDay, perRoute }` aggregated from confirmed bookings whose trip date falls in the inclusive range, scoped to the caller's `companyId`. `POST /api/v1/dashboard/reports/email` accepts `{ from, to, recipient }` and dispatches a rendered HTML body via the stub `EmailService`. `perRoute` is sorted by revenue desc; `perDay` by date asc. Invalid dates or inverted ranges → 400.
-- **Env vars (new):** `JWT_SECRET`, `JWT_EXPIRES_IN` (default `7d`), `DASHBOARD_BASE_URL` (used by the invite CLI when printing the acceptance URL).
+- **Env vars:** `DATABASE_URL` (Postgres connection string — falls back to `postgres://postgres:postgres@localhost:5432/postgres` if unset, so always set it explicitly in deployed envs), `JWT_SECRET`, `JWT_EXPIRES_IN` (default `7d`), `DASHBOARD_BASE_URL` (used by the invite CLI when printing the acceptance URL), `CORS_ORIGINS` (comma-separated list of allowed Origin headers; defaults to `http://localhost:4200`), `PORT` (default `3000`), `NODE_ENV` (controls TypeORM `synchronize`).
 - **Seeder:** `npm run seed` (from the `backend` workspace) rebuilds companies → trips → mock bookings.
 - **Invite CLI:** `npm run invite --workspace backend -- --email=<email> --companyId=<uuid> --role=admin|sales` inserts an invitation row and prints the acceptance URL. `--role` is required; the role flows onto the created user when the invitation is accepted.
 - **Role migration CLI:** `npm run migrate:roles --workspace backend` is a one-shot script that flips any legacy `users.role = 'agent'` rows to `'admin'`. Run it once per environment after deploying the role rework, then it can be left alone (re-running is a no-op).
@@ -77,13 +77,13 @@ ticketshop-sy/
 
 ## Common Commands
 
-All commands can be run from the project root using npm workspaces:
+### Local development (from the project root)
 
 ```bash
 # Customer App
 npm run start:app     # Run customer app in dev mode
 npm run build:app     # Build customer app for production
-npm run deploy:app    # Deploy customer app to GitHub Pages
+npm run deploy:app    # Deploy customer app to GitHub Pages (legacy target — see Deployment)
 
 # Admin Dashboard
 npm run start:admin   # Run admin dashboard in dev mode (port 4201)
@@ -97,6 +97,20 @@ npm run invite -w backend -- --email=<email> --companyId=<uuid> --role=admin|sal
 npm run migrate:roles -w backend   # One-shot: flip legacy role='agent' rows to 'admin'
 npm run test -w backend       # Unit tests (Jest, mocked deps)
 npm run test:e2e -w backend   # E2E tests against an ephemeral Postgres (Testcontainers — Docker required)
+```
+
+### On the deployed LXC (`/root/apps/ticketshop/deploy/`)
+
+The runtime image ships with `--omit=dev`, so npm scripts that use `ts-node` (seed, invite, migrate:roles) won't work — call the compiled JS directly via `docker compose exec`.
+
+```bash
+docker compose logs -f backend                                                            # tail logs
+docker compose exec backend node backend/dist/seeder/seed.js                              # nukes + reseeds (dev/showcase only)
+docker compose exec backend node backend/dist/cli/invite.js --email=... --companyId=... --role=admin|sales
+docker compose exec backend node backend/dist/cli/migrate-roles.js                        # legacy 'agent' → 'admin' (no-op on fresh envs)
+docker compose exec postgres psql -U "$(grep ^DB_USER= .env | cut -d= -f2)" -d "$(grep ^DB_NAME= .env | cut -d= -f2)"
+docker compose up -d --force-recreate backend                                             # pick up an .env-only change
+/root/apps/ticketshop/deploy/auto-deploy.sh                                               # manual deploy of latest master (skip the cron wait)
 ```
 
 ### E2E test suite (`backend/test/`)
@@ -114,45 +128,65 @@ End-to-end tests live in `backend/test/*.e2e-spec.ts` and run against a real Pos
 
 ## Deployment
 
-Three independent targets, each auto-deployed from GitHub on push to `master`:
+Self-hosted Docker stack on a single Proxmox LXC, exposed publicly via the user's pre-existing Cloudflare Tunnel (which lives in a separate LXC and is dashboard-managed in the Cloudflare Zero Trust UI). Auto-deploys from `master` via cron-poll on the host. Migrated off Railway / Netlify / GitHub Pages on 2026-04-26 to escape the 500 MB Railway DB cap and the Netlify deploy quotas.
 
-| Target | Platform | Build command | Notes |
-|---|---|---|---|
-| `backend/` | **Railway** | `npm run build:backend` | Runs `nest build`; env vars configured in Railway dashboard (DB creds, `JWT_SECRET`, `JWT_EXPIRES_IN`, `DASHBOARD_BASE_URL`, CORS origins). |
-| `apps/customer-app/` | **GitHub Pages** | `npm run build:app` / `npm run deploy:app` | Manual deploy via `gh-pages`; no env vars. |
-| `apps/admin-dashboard/` | **Netlify** | `npm run build:admin` | SPA redirects handled by `apps/admin-dashboard/public/_redirects` (or `netlify.toml`). `environment.apiUrl` must point at the Railway backend URL. |
+### Hostnames + ports
+
+| Hostname | Container | LXC host port |
+| --- | --- | --- |
+| `tickets-api.ce-svcs.cc` | backend | `13000` |
+| `tickets.ce-svcs.cc` | customer | `8080` |
+| `tickets-admin.ce-svcs.cc` | admin | `8081` |
+
+Single-level subdomains intentionally — Cloudflare's free Universal SSL only covers `*.ce-svcs.cc`, not `*.<anything>.ce-svcs.cc`. Adding a deeper subdomain would silently fail TLS handshake even with valid CNAMEs.
+
+### Stack layout (`deploy/`)
+
+- `docker-compose.yml` — postgres 16 + backend (NestJS) + customer (nginx + static) + admin (nginx + static). No cloudflared service; the existing tunnel LXC reaches us by IP at the published host ports.
+- `.env.example` — env template; the live `.env` exists only on the LXC (gitignored). `DATABASE_URL` is **synthesized in compose** from `DB_USER` / `DB_PASSWORD` / `DB_NAME` — don't add separate `DB_HOST`/`DB_PORT` env vars, the backend reads only `DATABASE_URL`.
+- `cloudflared/config.example.yml` — ingress snippet for *locally-managed* tunnels. Our actual tunnel is dashboard-managed, so this file is documentation only.
+- `backup.sh` — nightly `pg_dump` with 14-day local retention. Cron + off-box destination intentionally **deferred until real data lands** (see project memory `project_backup_followup.md`).
+- `auto-deploy.sh` — cron-driven `git fetch` + on-diff `git pull && docker compose build && up -d`. `flock`-guarded, fast-forward-only.
+- `README.md` — full runbook (host bootstrap → tunnel wiring → bring-up → backups → migration to another host).
+
+### Auto-deploy
+
+Wired via root crontab on the LXC:
+
+```
+*/5 * * * * /root/apps/ticketshop/deploy/auto-deploy.sh >> /var/log/ticketshop-auto-deploy.log 2>&1
+```
+
+Up to 5 min lag from push to live. Docker layer cache is the per-service "did anything change" check — `docker compose build` is ~30s no-op when nothing changed, ~3 min when an Angular bundle needs rebuilding.
 
 ### Deployment-impact rule
 
-**Before finishing any task, audit whether the changes could break deployment on any of the three targets.** If yes, you MUST either (a) make the aligning change in this PR, or (b) call out the required manual step explicitly in the final summary — do not silently ship a change that depends on the user updating an external system.
+**Before finishing any task, audit whether the changes could break the self-hosted deploy.** If yes, you MUST either (a) make the aligning change in this PR, or (b) call out the required manual step explicitly in the final summary — do not silently ship a change that depends on the user logging into the LXC.
 
 Changes that trigger this audit:
 
-- **New or changed env vars** (anything read from `process.env` in backend, or `environment.*` in a frontend) → list them for the user to set in Railway / Netlify.
-- **New build steps, scripts, or build-time dependencies** → confirm Railway / Netlify / gh-pages pipelines still succeed (e.g., new `postinstall`, new tool in `devDependencies` that needs to be in `dependencies`, new CLI that expects a binary in the image).
-- **CORS / cookie / auth config** → backend `origin` list must include the Netlify + GitHub Pages URLs; any same-origin assumption is a red flag.
+- **New or changed env vars** (anything read from `process.env` in backend, or `environment.*` in a frontend) → must be added to `deploy/.env.example` AND the live `.env` on the LXC, AND piped into the right service's `environment:` block in `docker-compose.yml`. Note: `.env`-only changes require `docker compose up -d --force-recreate <service>` (a plain `up -d` won't always pick them up), and Angular env vars are baked at **build time** via the `API_URL` build-arg, so they require `docker compose build customer admin` after the `.env` change.
+- **New build steps, scripts, or build-time dependencies** → must work in the multi-stage Dockerfiles (`backend/Dockerfile`, `apps/customer-app/Dockerfile`, `apps/admin-dashboard/Dockerfile`), not just locally. New runtime deps go in the workspace's `package.json` `dependencies` (not `devDependencies`) so the runtime stage's `npm ci --omit=dev` keeps them.
+- **CORS / cookie / auth config** → backend reads `CORS_ORIGINS` from env (comma-separated); the deploy's value must include both Angular hostnames. Backend already supports this — don't reintroduce a hardcoded origin list.
 - **API contract changes** (new routes, renamed response fields, new required request fields, changed base path) → both frontends consume the backend, so contract drift breaks the deployed apps even if local `npm run start:*` works.
-- **Routing changes in admin-dashboard** → SPA needs the `_redirects` rule; verify a new top-level route still resolves after a hard refresh on Netlify.
-- **Shared-models changes** → both frontends re-bundle; verify both builds pass, not just the one being edited.
-- **Database schema changes** → write a TypeORM migration in the same PR. Do **not** rely on `synchronize: true` to apply schema changes on Railway, and do **not** propose re-running the seeder as a recovery path — both leave dead-tuple bloat that filled the 500 MB Railway volume on 2026-04-26 and crash-looped Postgres. One-shot bootstrap helpers (e.g. `ensureRoleColumnBackfilled()`) are a smell; prefer an explicit migration. The seeder runs once per environment at bootstrap; after that, real data only.
-- **Port / URL assumptions** — anything hardcoded to `localhost:3000` / `:4200` / `:4201` is a deploy-break.
+- **Routing changes in admin-dashboard** → the nginx SPA fallback (`apps/admin-dashboard/nginx.conf` `try_files $uri $uri/ /index.html`) is what makes deep links survive a hard refresh — analogous to the legacy Netlify `_redirects`. Don't remove it.
+- **Shared-models changes** → both frontends re-bundle; verify both Docker builds succeed, not just the one being edited.
+- **Database schema changes** → currently safe to lean on `synchronize: true` because `NODE_ENV=development` is set in compose, but per the Railway 2026-04-26 incident this leaves dead-tuple bloat over time. Write proper TypeORM migrations before flipping to `NODE_ENV=production`. One-shot bootstrap helpers (e.g. `ensureRoleColumnBackfilled()`) are a smell; prefer an explicit migration. The seeder is dev-only — never propose re-seeding as a recovery path on a deploy with real data.
+- **Port / URL assumptions** — backend reads `PORT` env (default 3000); host port is `13000` to dodge a conflict on the LXC. Don't hardcode `localhost:3000` / `:4200` / `:4201` anywhere.
 
-When in doubt, say so explicitly in the final summary ("⚠ This adds env var X — set it in Railway before deploying"). Silent breakage is the failure mode to avoid.
+When in doubt, say so explicitly in the final summary ("⚠ This adds env var X — `ssh` into the LXC and add it to `deploy/.env`, then `docker compose up -d --force-recreate`"). Silent breakage is the failure mode to avoid.
 
-### Driver rework — one-time deployment notes
+### One-time deployment helpers (still relevant)
 
-The shift to NOT-NULL `trips.driverId` requires a one-shot pre-sync backfill on each environment:
+These backfill helpers run automatically on every backend boot via `main.ts`, so they're idempotent and need no manual action on the self-hosted deploy. Documented here because they're load-bearing context for the schema and were originally written to migrate the live Railway DB:
 
-1. **Deploy the backend.** `main.ts` and `seeder/seed.ts` call `ensureDriversBackfilled()` (in `backend/src/common/bootstrap/ensure-drivers-backfilled.ts`) before NestFactory boots — it idempotently creates the `drivers` table, adds nullable `trips.driverId` if missing, inserts one `'سائق افتراضي'` per company that has trips with NULL driverId (backfilling those trips), then **deletes any orphan drivers whose `companyId` no longer exists in `companies` and adds the `fk_drivers_company` FK constraint** if missing. After the helper runs, TypeORM `synchronize: true` can safely ALTER `trips.driverId` to NOT NULL because every existing row has a value.
-2. The first thing each company should do post-deploy is rename the auto-created default driver from the `/drivers` page (or delete it after assigning real drivers).
+- `ensureDriversBackfilled()` (in `backend/src/common/bootstrap/ensure-drivers-backfilled.ts`) — creates the `drivers` table, adds nullable `trips.driverId` if missing, inserts one `'سائق افتراضي'` per company that has trips with NULL driverId, deletes orphan drivers whose `companyId` no longer exists, and adds the `fk_drivers_company` FK constraint if missing. Lets `synchronize: true` then safely ALTER `trips.driverId` to NOT NULL.
+- `ensureRoleColumnBackfilled()` (in `backend/src/common/bootstrap/ensure-role-column.ts`) — adds `users.role` and `invitations.role` as nullable if missing and backfills nulls to `'admin'`, so `synchronize: true` can mark them NOT NULL without tripping `column "role" contains null values`.
+- `ensureTripTemplatesSchema()` (in `backend/src/common/bootstrap/ensure-trip-templates-schema.ts`) — creates the `trip_templates` schema if missing on first boot.
 
-### Role rework — one-time deployment notes
+`docker compose exec backend node backend/dist/cli/migrate-roles.js` flips legacy `users.role='agent'` rows to `'admin'`. No-op on environments that never had `'agent'` rows (the self-hosted deploy is one such), but kept for any future env that needs it.
 
-The shift from a single `'agent'` role to `'admin' | 'sales'` requires a one-shot migration on each environment:
-
-1. **Deploy the backend.** Both `main.ts` and `seeder/seed.ts` call `ensureRoleColumnBackfilled()` (in `backend/src/common/bootstrap/ensure-role-column.ts`) before NestFactory boots — it adds `users.role` and `invitations.role` as nullable if missing and backfills any nulls to `'admin'`, so TypeORM's subsequent `synchronize: true` can mark the columns NOT NULL without tripping `column "role" contains null values`. Idempotent and safe to leave in place.
-2. **Run `npm run migrate:roles -w backend`** against the deployed DB to flip existing `users.role='agent'` → `'admin'`. Until this runs, those users will get 401s on every request (their JWT carries `role='agent'`, which the new `JwtStrategy.validate()` rejects), forcing them to re-login — but they cannot log in successfully because the login response would carry `'agent'`. Run the migration immediately after deploy. (Not needed on environments that never had `'agent'` rows — the pre-sync backfill above handles fresh-from-null cases.)
-3. From now on, every `npm run invite` call must include `--role=admin|sales` (the flag is required).
+`npm run invite` (and the equivalent `node backend/dist/cli/invite.js` on the LXC) requires `--role=admin|sales`.
 
 ## Backend coding rules (lessons learned)
 
