@@ -297,7 +297,8 @@ export class DashboardBookingsService {
             const trip = await manager.findOne(TripEntity, {
                 where: { id: booking.tripId },
                 relations: { stations: true },
-                lock: { mode: 'pessimistic_write' },
+                // See bookings.service.ts: scope FOR UPDATE to `trips` so it doesn't fall on LEFT JOINs.
+                lock: { mode: 'pessimistic_write', tables: ['trips'] },
             })
             if (!trip) throw new NotFoundException('Trip not found')
 

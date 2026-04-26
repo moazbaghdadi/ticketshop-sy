@@ -49,7 +49,9 @@ export class BookingsService {
         const trip = await manager.findOne(TripEntity, {
             where: { id: dto.tripId },
             relations: { company: true, stations: true, segmentPrices: true },
-            lock: { mode: 'pessimistic_write' },
+            // Scope the lock to `trips` so the FOR UPDATE clause becomes `FOR UPDATE OF "trips"`.
+            // Without `tables`, Postgres rejects FOR UPDATE on the LEFT JOINs that relations produce.
+            lock: { mode: 'pessimistic_write', tables: ['trips'] },
         })
         if (!trip) {
             throw new NotFoundException(`Trip ${dto.tripId} not found`)
