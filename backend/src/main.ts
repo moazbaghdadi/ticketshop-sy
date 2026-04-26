@@ -5,6 +5,7 @@ import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module'
 import { ensureRoleColumnBackfilled } from './common/bootstrap/ensure-role-column'
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter'
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor'
 
 async function bootstrap(): Promise<void> {
     await ensureRoleColumnBackfilled()
@@ -23,6 +24,7 @@ async function bootstrap(): Promise<void> {
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     })
 
+    app.useGlobalInterceptors(new LoggingInterceptor())
     app.useGlobalFilters(new GlobalExceptionFilter())
 
     app.useGlobalPipes(

@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common'
 import { Request, Response } from 'express'
+import { summarizeForLog } from '../util/log-redact'
 
 interface ErrorResponseBody {
     statusCode: number
@@ -33,9 +34,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             }
         } else {
             // Unknown / non-HTTP errors collapse to a generic 500 in the client response — log
-            // the real cause so they don't disappear silently in production.
+            // the real cause + redacted body so they don't disappear silently in production.
             const err = exception instanceof Error ? exception : new Error(String(exception))
-            this.logger.error(`Unhandled ${request.method} ${request.url}: ${err.message}`, err.stack)
+            const body = JSON.stringify(summarizeForLog(request.body))
+            this.logger.error(`Unhandled ${request.method} ${request.url} body=${body}: ${err.message}`, err.stack)
         }
 
         const body: ErrorResponseBody = {

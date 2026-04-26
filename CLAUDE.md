@@ -135,6 +135,16 @@ The shift from a single `'agent'` role to `'admin' | 'sales'` requires a one-sho
 2. **Run `npm run migrate:roles -w backend`** against the deployed DB to flip existing `users.role='agent'` → `'admin'`. Until this runs, those users will get 401s on every request (their JWT carries `role='agent'`, which the new `JwtStrategy.validate()` rejects), forcing them to re-login — but they cannot log in successfully because the login response would carry `'agent'`. Run the migration immediately after deploy. (Not needed on environments that never had `'agent'` rows — the pre-sync backfill above handles fresh-from-null cases.)
 3. From now on, every `npm run invite` call must include `--role=admin|sales` (the flag is required).
 
+## Backend coding rules (lessons learned)
+
+These rules are not stylistic — each one comes from a real production failure. Follow them when writing backend code.
+
+1. **`lock: pessimistic_*` and `relations` must not appear in the same `findOne` call.** TypeORM's default `relationLoadStrategy: 'join'` turns relations into `LEFT JOIN`s, and Postgres rejects `SELECT … FOR UPDATE` over the nullable side of an outer join. Either scope the lock with `tables: ['<root_table>']` (so it becomes `FOR UPDATE OF "<root_table>"`), or split: take the lock first with a bare `manager.query('SELECT id FROM x WHERE id=$1 FOR UPDATE', [...])` (or a no-relations `findOne`), then load the relations in a second read inside the same transaction.
+2. **Any new transactional / locking code path needs at least one integration test against a real Postgres** (testcontainer or local docker — not the mocked `EntityManager` we use elsewhere). Mocked tests validate control flow but not the SQL, and SQL is exactly what's at risk in this category.
+3. **Mentally compile the SQL before merging a TypeORM change.** If a reviewer can't predict the resulting query within ±1 join, rewrite it as `QueryBuilder` (where the SQL is visible in the source) or split it into smaller statements. ORM API options compose in non-obvious ways at the SQL layer.
+4. **`GlobalExceptionFilter` must always log non-`HttpException` errors with stack + request context** (method, URL, redacted body). Silent 500s are forbidden — they cost a full reproduce-locally cycle to debug. Covered by `backend/src/common/filters/http-exception.filter.spec.ts`; if you change the filter, keep the test passing.
+5. **All HTTP requests get `[req]` / `[res]` log lines via `LoggingInterceptor`** (in `backend/src/common/interceptors/logging.interceptor.ts`), and any request body that contains PII must be summarized through `summarizeForLog` (in `backend/src/common/util/log-redact.ts`) before it touches a logger. Sensitive keys (`passenger`, `password`, `token`, `authorization`, …) collapse to `<redacted>`. Add new sensitive keys to `REDACTED_KEYS` rather than scattering ad-hoc redaction at call sites.
+
 ## Development Notes
 
 - Use the monorepo structure to share types from `libs/shared-models`.
