@@ -28,13 +28,13 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      NODE_ENV: production
+      # Backend gates `synchronize: true` on NODE_ENV === 'development'.
+      # Until proper migrations exist, leave this as 'development' so the
+      # empty Postgres gets its schema auto-created on first boot — same
+      # as the Railway deploy runs today.
+      NODE_ENV: development
       PORT: 3000
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
+      DATABASE_URL: postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       DASHBOARD_BASE_URL: ${DASHBOARD_BASE_URL}
