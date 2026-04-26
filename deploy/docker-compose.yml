@@ -40,7 +40,7 @@ services:
       DASHBOARD_BASE_URL: ${DASHBOARD_BASE_URL}
       CORS_ORIGINS: ${CORS_ORIGINS}
     ports:
-      - "3000:3000"   # exposed to the LXC's interface so the cloudflared LXC can reach it
+      - "13000:3000"   # host:container — host port chosen to avoid conflicts on the LXC
 
   customer:
     build:
