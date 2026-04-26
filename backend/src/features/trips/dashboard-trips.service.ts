@@ -1,11 +1,12 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { In, Repository } from 'typeorm'
+import { DataSource, In, Repository } from 'typeorm'
 import { CITIES, CITY_IDS, CITY_MAP } from '../../common/data/cities.data'
 import { arabicNormalize } from '../../common/util/arabic-normalize'
 import { BookingEntity } from '../bookings/entities/booking.entity'
 import { DriversService } from '../drivers/drivers.service'
 import { DriverEntity } from '../drivers/entities/driver.entity'
+import { TripTemplatesService } from '../trip-templates/trip-templates.service'
 import { CreateDashboardTripDto } from './dto/create-dashboard-trip.dto'
 import { CancelledTripDismissalEntity } from './entities/cancelled-trip-dismissal.entity'
 import { TripSegmentPriceEntity } from './entities/trip-segment-price.entity'
@@ -99,7 +100,9 @@ export class DashboardTripsService {
         private readonly bookingRepository: Repository<BookingEntity>,
         @InjectRepository(CancelledTripDismissalEntity)
         private readonly dismissalRepository: Repository<CancelledTripDismissalEntity>,
-        private readonly driversService: DriversService
+        private readonly driversService: DriversService,
+        private readonly templatesService: TripTemplatesService,
+        private readonly dataSource: DataSource
     ) {}
 
     async listTrips(companyId: string, opts: ListTripsOptions = {}): Promise<DashboardTripListResult> {
@@ -329,30 +332,63 @@ export class DashboardTripsService {
     async create(companyId: string, dto: CreateDashboardTripDto): Promise<TripEntity> {
         this.validate(dto)
 
+        if (dto.saveAsTemplate && !dto.templateName?.trim()) {
+            throw new BadRequestException('templateName is required when saveAsTemplate is true')
+        }
+
         const driver = await this.resolveDriver(companyId, dto.driver)
 
-        const trip = this.tripRepository.create({
-            companyId,
-            driverId: driver.id,
-            date: dto.date,
-            stations: dto.stations.map(s =>
-                Object.assign(new TripStationEntity(), {
-                    cityId: s.cityId,
-                    order: s.order,
-                    arrivalTime: s.arrivalTime ?? null,
-                    departureTime: s.departureTime ?? null,
-                })
-            ),
-            segmentPrices: dto.segmentPrices.map(p =>
-                Object.assign(new TripSegmentPriceEntity(), {
-                    fromCityId: p.fromCityId,
-                    toCityId: p.toCityId,
-                    price: p.price,
-                })
-            ),
-        })
+        // When saveAsTemplate is set, we wrap both writes in one transaction so a failure
+        // partway through doesn't leave a trip without its template (or vice versa).
+        return this.dataSource.transaction(async manager => {
+            const trip = manager.create(TripEntity, {
+                companyId,
+                driverId: driver.id,
+                date: dto.date,
+                stations: dto.stations.map(s =>
+                    Object.assign(new TripStationEntity(), {
+                        cityId: s.cityId,
+                        order: s.order,
+                        arrivalTime: s.arrivalTime ?? null,
+                        departureTime: s.departureTime ?? null,
+                    })
+                ),
+                segmentPrices: dto.segmentPrices.map(p =>
+                    Object.assign(new TripSegmentPriceEntity(), {
+                        fromCityId: p.fromCityId,
+                        toCityId: p.toCityId,
+                        price: p.price,
+                    })
+                ),
+            })
+            const saved = await manager.save(trip)
 
-        return this.tripRepository.save(trip)
+            if (dto.saveAsTemplate) {
+                await this.templatesService.createFromTripDto(companyId, manager, {
+                    nameAr: dto.templateName!,
+                    driverId: driver.id,
+                    stations: dto.stations.map(s => ({
+                        cityId: s.cityId,
+                        order: s.order,
+                        arrivalTime: s.arrivalTime ?? null,
+                        departureTime: s.departureTime ?? null,
+                    })),
+                    segmentPrices: dto.segmentPrices.map(p => ({
+                        fromCityId: p.fromCityId,
+                        toCityId: p.toCityId,
+                        price: p.price,
+                    })),
+                })
+            }
+
+            return saved
+        })
+    }
+
+    /** Snapshot an existing trip into a fresh template. Admin-only at the controller layer. */
+    async saveAsTemplate(companyId: string, tripId: string, name: string): Promise<{ id: string }> {
+        const dto = await this.templatesService.snapshotFromTrip(companyId, tripId, name)
+        return { id: dto.id }
     }
 
     private async resolveDriver(companyId: string, driver: { id?: string; name?: string } | undefined): Promise<DriverEntity> {

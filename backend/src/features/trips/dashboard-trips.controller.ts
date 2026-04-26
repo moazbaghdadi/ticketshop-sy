@@ -24,6 +24,7 @@ import {
     TripSortField,
     TripStatusFilter,
 } from './dashboard-trips.service'
+import { SaveAsTemplateDto } from '../trip-templates/dto/save-as-template.dto'
 import { CancelTripDto } from './dto/cancel-trip.dto'
 import { CreateDashboardTripDto } from './dto/create-dashboard-trip.dto'
 
@@ -150,5 +151,19 @@ export class DashboardTripsController {
     @ApiOperation({ summary: 'Dismiss a cancelled-trip notification for the current user' })
     async dismiss(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) tripId: string): Promise<void> {
         await this.dashboardTripsService.dismissCancellation(user.id, user.companyId, tripId)
+    }
+
+    @Post(':id/save-as-template')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @ApiOperation({ summary: 'Snapshot an existing trip into a new trip template' })
+    @ApiForbiddenResponse({ description: 'Requires admin role' })
+    async saveAsTemplate(
+        @CurrentUser() user: AuthenticatedUser,
+        @Param('id', ParseUUIDPipe) tripId: string,
+        @Body() dto: SaveAsTemplateDto
+    ): Promise<{ data: { id: string } }> {
+        const data = await this.dashboardTripsService.saveAsTemplate(user.companyId, tripId, dto.name)
+        return { data }
     }
 }

@@ -1,10 +1,11 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { DataSource, EntityManager, Repository } from 'typeorm'
 import { BookingEntity } from '../bookings/entities/booking.entity'
 import { DriverEntity } from '../drivers/entities/driver.entity'
 import { DriversService } from '../drivers/drivers.service'
+import { TripTemplatesService } from '../trip-templates/trip-templates.service'
 import { DashboardTripsService } from './dashboard-trips.service'
 import { CreateDashboardTripDto } from './dto/create-dashboard-trip.dto'
 import { CancelledTripDismissalEntity } from './entities/cancelled-trip-dismissal.entity'
@@ -16,6 +17,8 @@ describe('DashboardTripsService', () => {
     let bookingRepository: jest.Mocked<Repository<BookingEntity>>
     let dismissalRepository: jest.Mocked<Repository<CancelledTripDismissalEntity>>
     let driversService: jest.Mocked<DriversService>
+    let templatesService: jest.Mocked<TripTemplatesService>
+    let txManager: { create: jest.Mock; save: jest.Mock }
 
     const driverFixture: DriverEntity = {
         id: 'driver-uuid',
@@ -26,6 +29,14 @@ describe('DashboardTripsService', () => {
     } as DriverEntity
 
     beforeEach(async () => {
+        txManager = {
+            create: jest.fn((_entity, data: Record<string, unknown>) => ({ ...data })),
+            save: jest.fn(async (entity: Record<string, unknown>) => ({ ...entity, id: 'new-trip-uuid' })),
+        }
+        const dataSource = {
+            transaction: jest.fn(async (cb: (m: unknown) => Promise<unknown>) => cb(txManager)),
+        }
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 DashboardTripsService,
@@ -61,6 +72,17 @@ describe('DashboardTripsService', () => {
                         findOrCreate: jest.fn(async (_: string, name: string) => ({ ...driverFixture, nameAr: name })),
                     },
                 },
+                {
+                    provide: TripTemplatesService,
+                    useValue: {
+                        createFromTripDto: jest.fn(async () => undefined),
+                        snapshotFromTrip: jest.fn(async () => ({ id: 'tpl-1' })),
+                    },
+                },
+                {
+                    provide: DataSource,
+                    useValue: dataSource,
+                },
             ],
         }).compile()
 
@@ -69,6 +91,7 @@ describe('DashboardTripsService', () => {
         bookingRepository = module.get(getRepositoryToken(BookingEntity))
         dismissalRepository = module.get(getRepositoryToken(CancelledTripDismissalEntity))
         driversService = module.get(DriversService)
+        templatesService = module.get(TripTemplatesService)
     })
 
     const validDto: CreateDashboardTripDto = {
@@ -90,14 +113,38 @@ describe('DashboardTripsService', () => {
         const result = await service.create('company-uuid', validDto)
 
         expect(result.id).toBe('new-trip-uuid')
-        expect(repository.save).toHaveBeenCalled()
-        const saved = repository.create.mock.calls[0]![0] as Partial<TripEntity>
-        expect(saved.companyId).toBe('company-uuid')
-        expect(saved.driverId).toBe('driver-uuid')
-        expect(saved.date).toBe('2026-04-20')
-        expect(saved.stations).toHaveLength(3)
-        expect(saved.segmentPrices).toHaveLength(3)
+        expect(txManager.save).toHaveBeenCalled()
+        const tripArgs = txManager.create.mock.calls[0]![1] as Partial<TripEntity>
+        expect(tripArgs.companyId).toBe('company-uuid')
+        expect(tripArgs.driverId).toBe('driver-uuid')
+        expect(tripArgs.date).toBe('2026-04-20')
+        expect(tripArgs.stations).toHaveLength(3)
+        expect(tripArgs.segmentPrices).toHaveLength(3)
         expect(driversService.resolveActive).toHaveBeenCalledWith('company-uuid', 'driver-uuid')
+        expect(templatesService.createFromTripDto).not.toHaveBeenCalled()
+        // Repository.save isn't used by the create path anymore — txManager.save is.
+        void repository
+    })
+
+    it('also creates a template when saveAsTemplate is true', async () => {
+        await service.create('company-uuid', { ...validDto, saveAsTemplate: true, templateName: 'صباحي' })
+        expect(templatesService.createFromTripDto).toHaveBeenCalledWith(
+            'company-uuid',
+            expect.anything(),
+            expect.objectContaining({ nameAr: 'صباحي', driverId: 'driver-uuid' })
+        )
+    })
+
+    it('400s when saveAsTemplate is true but no templateName given', async () => {
+        await expect(
+            service.create('company-uuid', { ...validDto, saveAsTemplate: true })
+        ).rejects.toThrow(/templateName/)
+    })
+
+    it('saveAsTemplate delegates to TripTemplatesService.snapshotFromTrip', async () => {
+        const result = await service.saveAsTemplate('company-uuid', 'trip-uuid', 'صباحي')
+        expect(result).toEqual({ id: 'tpl-1' })
+        expect(templatesService.snapshotFromTrip).toHaveBeenCalledWith('company-uuid', 'trip-uuid', 'صباحي')
     })
 
     it('find-or-creates a driver when only a name is supplied', async () => {

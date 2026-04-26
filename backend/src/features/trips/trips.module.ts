@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { BookingEntity } from '../bookings/entities/booking.entity'
 import { CompanyEntity } from '../companies/entities/company.entity'
 import { DriversModule } from '../drivers/drivers.module'
+import { TripTemplatesModule } from '../trip-templates/trip-templates.module'
 import { DashboardTripsController } from './dashboard-trips.controller'
 import { DashboardTripsService } from './dashboard-trips.service'
 import { CancelledTripDismissalEntity } from './entities/cancelled-trip-dismissal.entity'
@@ -23,6 +24,7 @@ import { TripsService } from './trips.service'
             BookingEntity,
         ]),
         DriversModule,
+        TripTemplatesModule,
     ],
     controllers: [TripsController, DashboardTripsController],
     providers: [TripsService, DashboardTripsService],

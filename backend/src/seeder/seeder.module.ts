@@ -7,6 +7,9 @@ import { BookingEntity } from '../features/bookings/entities/booking.entity'
 import { CompanyEntity } from '../features/companies/entities/company.entity'
 import { DriversService } from '../features/drivers/drivers.service'
 import { DriverEntity } from '../features/drivers/entities/driver.entity'
+import { TripTemplateSegmentPriceEntity } from '../features/trip-templates/entities/trip-template-segment-price.entity'
+import { TripTemplateStationEntity } from '../features/trip-templates/entities/trip-template-station.entity'
+import { TripTemplateEntity } from '../features/trip-templates/entities/trip-template.entity'
 import { CancelledTripDismissalEntity } from '../features/trips/entities/cancelled-trip-dismissal.entity'
 import { TripSegmentPriceEntity } from '../features/trips/entities/trip-segment-price.entity'
 import { TripStationEntity } from '../features/trips/entities/trip-station.entity'
@@ -33,6 +36,9 @@ import { TripsSeederService } from './trips-seeder.service'
                     TripEntity,
                     TripStationEntity,
                     TripSegmentPriceEntity,
+                    TripTemplateEntity,
+                    TripTemplateStationEntity,
+                    TripTemplateSegmentPriceEntity,
                     CancelledTripDismissalEntity,
                     BookingEntity,
                 ],

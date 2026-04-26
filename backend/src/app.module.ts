@@ -10,6 +10,7 @@ import { DashboardModule } from './features/dashboard/dashboard.module'
 import { DriversModule } from './features/drivers/drivers.module'
 import { MailModule } from './features/mail/mail.module'
 import { SeatsModule } from './features/seats/seats.module'
+import { TripTemplatesModule } from './features/trip-templates/trip-templates.module'
 import { TripsModule } from './features/trips/trips.module'
 
 @Module({
@@ -32,6 +33,7 @@ import { TripsModule } from './features/trips/trips.module'
         MailModule,
         DriversModule,
         TripsModule,
+        TripTemplatesModule,
         SeatsModule,
         BookingsModule,
         DashboardModule,
