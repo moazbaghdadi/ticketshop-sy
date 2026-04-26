@@ -1,0 +1,125 @@
+<div class="templates-page">
+  <header class="page-header">
+    <h1>قوالب الرحلات</h1>
+    <a routerLink="/trips/templates/new" class="primary-btn">
+      <span class="material-icons">add</span>
+      قالب جديد
+    </a>
+  </header>
+
+  @if (loading()) {
+    <p class="empty">جارٍ التحميل...</p>
+  } @else if (error(); as err) {
+    <div class="error-banner">
+      <span class="material-icons">error_outline</span>
+      {{ err }}
+    </div>
+  } @else if (templates().length === 0) {
+    <p class="empty">لا توجد قوالب بعد. أضف قالباً جديداً أو احفظ رحلة موجودة كقالب.</p>
+  } @else {
+    <section class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>المسار</th>
+            <th>السائق</th>
+            <th>عدد المحطات</th>
+            <th>تاريخ الإضافة</th>
+            <th class="actions-col">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of templates(); track t.id) {
+            <tr>
+              <td>{{ t.nameAr }}</td>
+              <td>{{ routeLabel(t) }}</td>
+              <td>{{ t.driver.nameAr }}</td>
+              <td>{{ t.stations.length }}</td>
+              <td>{{ t.createdAt | date: 'yyyy-MM-dd' }}</td>
+              <td class="row-actions">
+                <button class="primary-btn small" (click)="startInstantiate(t)" title="إنشاء رحلة من القالب">
+                  <span class="material-icons">play_circle</span>
+                  إنشاء رحلة
+                </button>
+                <a [routerLink]="['/trips/templates', t.id, 'edit']" class="icon-btn" title="تعديل">
+                  <span class="material-icons">edit</span>
+                </a>
+                <button class="icon-btn danger" (click)="startDelete(t)" title="حذف">
+                  <span class="material-icons">delete</span>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+</div>
+
+@if (instantiateState(); as ins) {
+  <div class="modal-backdrop" (click)="cancelInstantiate()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <h2>إنشاء رحلة من القالب: {{ ins.template.nameAr }}</h2>
+      </header>
+      <div class="modal-body">
+        <p class="hint">سيتم احتساب أوقات جميع المحطات تلقائياً بناءً على وقت انطلاق المحطة الأولى.</p>
+        <div class="field">
+          <label>تاريخ الرحلة</label>
+          <input
+            class="input"
+            type="date"
+            [ngModel]="ins.date"
+            (ngModelChange)="setInstantiateDate($event)"
+          />
+        </div>
+        <div class="field">
+          <label>وقت انطلاق المحطة الأولى</label>
+          <input
+            class="input"
+            type="time"
+            [ngModel]="ins.firstDepartureTime"
+            (ngModelChange)="setInstantiateTime($event)"
+          />
+        </div>
+        @if (ins.error; as err) {
+          <div class="error-text">{{ err }}</div>
+        }
+      </div>
+      <footer class="modal-actions">
+        <button class="text-btn" (click)="cancelInstantiate()">إلغاء</button>
+        <button class="primary-btn" [disabled]="ins.submitting" (click)="confirmInstantiate()">
+          @if (ins.submitting) {
+            جارٍ الإنشاء...
+          } @else {
+            إنشاء الرحلة
+          }
+        </button>
+      </footer>
+    </div>
+  </div>
+}
+
+@if (deleteTarget(); as del) {
+  <div class="modal-backdrop" (click)="cancelDelete()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <h2>حذف القالب</h2>
+      </header>
+      <div class="modal-body">
+        <p>هل تريد فعلاً حذف القالب <strong>{{ del.nameAr }}</strong>؟ هذا الإجراء لا يؤثر على الرحلات المُنشأة سابقاً منه.</p>
+      </div>
+      <footer class="modal-actions">
+        <button class="text-btn" (click)="cancelDelete()">إلغاء</button>
+        <button class="primary-btn danger" [disabled]="deleting()" (click)="confirmDelete()">
+          @if (deleting()) {
+            جارٍ الحذف...
+          } @else {
+            تأكيد الحذف
+          }
+        </button>
+      </footer>
+    </div>
+  </div>
+}

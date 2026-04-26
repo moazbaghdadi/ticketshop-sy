@@ -340,3 +340,26 @@
 .spinning {
   animation: spin 1s linear infinite;
 }
+
+.toast-success {
+  position: fixed;
+  bottom: 20px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  background: #2e7d32;
+  color: var(--color-white);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  z-index: 1000;
+  box-shadow: var(--shadow);
+}
+
+.error-text {
+  color: #b71c1c;
+  font-size: 12px;
+  margin: 4px 0 0;
+}

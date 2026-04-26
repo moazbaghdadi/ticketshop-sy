@@ -1,4 +1,4 @@
-.new-trip-page {
+.template-form-page {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -322,19 +322,4 @@
 
 .driver-suggestions li:hover {
   background: var(--color-bg, #f5f5f5);
-}
-
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--color-text-dark);
-  cursor: pointer;
-}
-
-.checkbox-row input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
 }

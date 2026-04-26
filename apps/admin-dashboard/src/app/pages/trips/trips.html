@@ -177,6 +177,9 @@
                     <span class="material-icons">list_alt</span>
                   </a>
                   @if (!trip.cancelledAt && auth.isAdmin()) {
+                    <button class="icon-btn" (click)="openSaveAsTemplate(trip)" title="حفظ كقالب">
+                      <span class="material-icons">bookmark_add</span>
+                    </button>
                     <button class="icon-btn danger" (click)="openCancel(trip)" title="إلغاء">
                       <span class="material-icons">cancel</span>
                     </button>
@@ -200,6 +203,46 @@
         </button>
       </div>
     }
+  }
+
+  @if (auth.isAdmin() && saveTemplateTarget(); as trip) {
+    <div class="modal-backdrop" (click)="closeSaveAsTemplate()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h2>حفظ الرحلة كقالب</h2>
+        <p>{{ trip.fromCity }} ← {{ trip.toCity }} بتاريخ {{ formatDate(trip.date) }}</p>
+        <label>اسم القالب</label>
+        <input
+          type="text"
+          [ngModel]="saveTemplateName()"
+          (ngModelChange)="saveTemplateName.set($event)"
+          placeholder="مثال: صباحي دمشق→حلب"
+        />
+        @if (saveTemplateError(); as err) {
+          <p class="error-text">{{ err }}</p>
+        }
+        <div class="modal-actions">
+          <button class="text-btn" (click)="closeSaveAsTemplate()" [disabled]="savingTemplate()">إلغاء</button>
+          <button
+            class="primary-btn"
+            (click)="confirmSaveAsTemplate()"
+            [disabled]="!saveTemplateName().trim() || savingTemplate()"
+          >
+            @if (savingTemplate()) {
+              جارٍ الحفظ...
+            } @else {
+              حفظ القالب
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (saveTemplateSuccess(); as msg) {
+    <div class="toast-success">
+      <span class="material-icons">check_circle</span>
+      {{ msg }}
+    </div>
   }
 
   @if (auth.isAdmin() && cancelTarget(); as trip) {

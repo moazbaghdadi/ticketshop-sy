@@ -98,6 +98,8 @@ export interface CreateDashboardTripRequest {
     departureTime: string | null;
   }[];
   segmentPrices: { fromCityId: string; toCityId: string; price: number }[];
+  saveAsTemplate?: boolean;
+  templateName?: string;
 }
 
 @Injectable({ providedIn: 'root' })

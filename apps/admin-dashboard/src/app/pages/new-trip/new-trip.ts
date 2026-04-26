@@ -50,6 +50,10 @@ export class NewTripPage implements OnInit {
   driverSuggestions = signal<DriverDto[]>([]);
   driverDropdownOpen = signal<boolean>(false);
 
+  /** "Save as template" checkbox + name. Backend writes both rows in one transaction. */
+  saveAsTemplate = signal<boolean>(false);
+  templateName = signal<string>('');
+
   submitting = signal(false);
   serverError = signal<string | null>(null);
   validationError = signal<string | null>(null);
@@ -234,6 +238,11 @@ export class NewTripPage implements OnInit {
     this.serverError.set(null);
     if (error) return;
 
+    if (this.saveAsTemplate() && !this.templateName().trim()) {
+      this.validationError.set('أدخل اسماً للقالب أو ألغِ خيار الحفظ كقالب');
+      return;
+    }
+
     const stations = this.stations();
     const driverId = this.driverId();
     const body: CreateDashboardTripRequest = {
@@ -250,6 +259,8 @@ export class NewTripPage implements OnInit {
         toCityId: p.to.cityId,
         price: this.priceFor(p.key)!,
       })),
+      saveAsTemplate: this.saveAsTemplate() || undefined,
+      templateName: this.saveAsTemplate() ? this.templateName().trim() : undefined,
     };
 
     this.submitting.set(true);

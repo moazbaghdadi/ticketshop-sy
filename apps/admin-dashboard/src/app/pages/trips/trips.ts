@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { TripTemplatesService } from '../../services/trip-templates.service';
 import {
   DashboardTripListResult,
   DashboardTripSummary,
@@ -42,6 +43,14 @@ export class TripsPage implements OnInit {
   cancelTarget = signal<DashboardTripSummary | null>(null);
   cancelReason = signal<string>('');
   cancelling = signal(false);
+
+  saveTemplateTarget = signal<DashboardTripSummary | null>(null);
+  saveTemplateName = signal<string>('');
+  savingTemplate = signal(false);
+  saveTemplateError = signal<string | null>(null);
+  saveTemplateSuccess = signal<string | null>(null);
+
+  private templatesService = inject(TripTemplatesService);
 
   ngOnInit(): void {
     this.load();
@@ -160,6 +169,49 @@ export class TripsPage implements OnInit {
       error: () => {
         this.cancelling.set(false);
         this.error.set('تعذر إلغاء الرحلة');
+      },
+    });
+  }
+
+  openSaveAsTemplate(trip: DashboardTripSummary): void {
+    this.saveTemplateTarget.set(trip);
+    this.saveTemplateName.set('');
+    this.saveTemplateError.set(null);
+    this.saveTemplateSuccess.set(null);
+  }
+
+  closeSaveAsTemplate(): void {
+    this.saveTemplateTarget.set(null);
+    this.saveTemplateName.set('');
+    this.saveTemplateError.set(null);
+  }
+
+  confirmSaveAsTemplate(): void {
+    const trip = this.saveTemplateTarget();
+    const name = this.saveTemplateName().trim();
+    if (!trip || !name) {
+      this.saveTemplateError.set('أدخل اسم القالب');
+      return;
+    }
+    this.savingTemplate.set(true);
+    this.saveTemplateError.set(null);
+    this.templatesService.saveAsTemplate(trip.id, name).subscribe({
+      next: () => {
+        this.savingTemplate.set(false);
+        this.saveTemplateSuccess.set('تم حفظ القالب');
+        this.saveTemplateTarget.set(null);
+      },
+      error: (err) => {
+        this.savingTemplate.set(false);
+        const e = err as { error?: { message?: string | string[] } };
+        const msg = e?.error?.message;
+        this.saveTemplateError.set(
+          typeof msg === 'string'
+            ? msg
+            : Array.isArray(msg)
+              ? msg.join('، ')
+              : 'تعذر حفظ القالب',
+        );
       },
     });
   }

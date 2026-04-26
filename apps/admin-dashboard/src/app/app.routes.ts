@@ -37,6 +37,24 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/drivers/drivers').then((m) => m.DriversPage),
       },
       {
+        path: 'trips/templates',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/templates-list/templates-list').then((m) => m.TemplatesListPage),
+      },
+      {
+        path: 'trips/templates/new',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/template-form/template-form').then((m) => m.TemplateFormPage),
+      },
+      {
+        path: 'trips/templates/:id/edit',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/template-form/template-form').then((m) => m.TemplateFormPage),
+      },
+      {
         path: 'trips/:id/reservations',
         loadComponent: () =>
           import('./pages/reservations/reservations').then((m) => m.ReservationsPage),

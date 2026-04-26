@@ -1,21 +1,22 @@
-<div class="new-trip-page">
+<div class="template-form-page">
   <header class="page-header">
     <div>
-      <a class="back-link" routerLink="/trips">
+      <a class="back-link" routerLink="/trips/templates">
         <span class="material-icons">arrow_back</span>
-        الرحلات
+        القوالب
       </a>
-      <h1>رحلة جديدة</h1>
+      <h1>{{ templateId() ? 'تعديل القالب' : 'قالب جديد' }}</h1>
     </div>
   </header>
 
   <section class="card">
     <div class="field">
-      <label>تاريخ الرحلة</label>
+      <label>اسم القالب</label>
       <input
-        type="date"
-        [ngModel]="date()"
-        (ngModelChange)="date.set($event)"
+        type="text"
+        [ngModel]="nameAr()"
+        (ngModelChange)="nameAr.set($event)"
+        placeholder="مثال: صباحي دمشق→حلب"
       />
     </div>
 
@@ -39,6 +40,11 @@
       }
       <small class="hint">إذا لم يكن السائق موجوداً، اكتب اسماً جديداً وسيُنشأ تلقائياً.</small>
     </div>
+
+    <p class="hint">
+      الأوقات أدناه تُستخدم لحساب الفروق الزمنية بين المحطات. سيُسأل المستخدم عن وقت الانطلاق
+      الفعلي عند إنشاء رحلة من القالب، وسيتم تطبيق نفس الفروق على كل المحطات.
+    </p>
   </section>
 
   <section class="card">
@@ -85,28 +91,13 @@
             />
           </div>
           <div class="row-actions">
-            <button
-              class="icon-btn"
-              [disabled]="i === 0"
-              (click)="moveUp(i)"
-              title="تحريك للأعلى"
-            >
+            <button class="icon-btn" [disabled]="i === 0" (click)="moveUp(i)" title="تحريك للأعلى">
               <span class="material-icons">arrow_upward</span>
             </button>
-            <button
-              class="icon-btn"
-              [disabled]="i === stations().length - 1"
-              (click)="moveDown(i)"
-              title="تحريك للأسفل"
-            >
+            <button class="icon-btn" [disabled]="i === stations().length - 1" (click)="moveDown(i)" title="تحريك للأسفل">
               <span class="material-icons">arrow_downward</span>
             </button>
-            <button
-              class="icon-btn danger"
-              [disabled]="stations().length <= 2"
-              (click)="removeStation(i)"
-              title="حذف"
-            >
+            <button class="icon-btn danger" [disabled]="stations().length <= 2" (click)="removeStation(i)" title="حذف">
               <span class="material-icons">delete</span>
             </button>
           </div>
@@ -147,28 +138,6 @@
     }
   </section>
 
-  <section class="card">
-    <label class="checkbox-row">
-      <input
-        type="checkbox"
-        [ngModel]="saveAsTemplate()"
-        (ngModelChange)="saveAsTemplate.set($event)"
-      />
-      <span>حفظ كقالب لإعادة الاستخدام لاحقاً</span>
-    </label>
-    @if (saveAsTemplate()) {
-      <div class="field">
-        <label>اسم القالب</label>
-        <input
-          type="text"
-          [ngModel]="templateName()"
-          (ngModelChange)="templateName.set($event)"
-          placeholder="مثال: صباحي دمشق→حلب"
-        />
-      </div>
-    }
-  </section>
-
   @if (validationError(); as err) {
     <div class="error-banner">
       <span class="material-icons">error_outline</span>
@@ -183,12 +152,12 @@
   }
 
   <footer class="page-actions">
-    <a routerLink="/trips" class="text-btn">إلغاء</a>
+    <a routerLink="/trips/templates" class="text-btn">إلغاء</a>
     <button class="primary-btn" [disabled]="submitting()" (click)="submit()">
       @if (submitting()) {
         جارٍ الحفظ...
       } @else {
-        حفظ الرحلة
+        حفظ القالب
       }
     </button>
   </footer>
