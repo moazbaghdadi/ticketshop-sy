@@ -12,6 +12,10 @@ const DUMMY_DRIVER_NAME = 'سائق افتراضي'
  *   2. Add trips.driverId as nullable if missing.
  *   3. For each company that has trips with NULL driverId, insert one
  *      "سائق افتراضي" driver and backfill those trips.
+ *   4. Delete any drivers whose companyId no longer exists in companies, then
+ *      enforce drivers.companyId → companies(id) at the schema level so the
+ *      orphan state can't recur. (Fixes Railway 2026-04-26: stale-JWT inserts
+ *      had been creating orphan drivers because this FK was missing.)
  *
  * After this runs, synchronize can safely ALTER trips.driverId to NOT NULL because
  * every existing row now has a value.
@@ -59,6 +63,27 @@ export async function ensureDriversBackfilled(): Promise<void> {
                 driverId,
                 companyId,
             ])
+        }
+
+        if (await tableExists(ds, 'companies')) {
+            await ds.query(`DELETE FROM "drivers" WHERE "companyId" NOT IN (SELECT "id" FROM "companies")`)
+            const fkExists: Array<{ exists: boolean }> = await ds.query(
+                `SELECT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conrelid = 'public.drivers'::regclass
+                      AND contype = 'f'
+                      AND conkey = (
+                          SELECT array_agg(attnum) FROM pg_attribute
+                          WHERE attrelid = 'public.drivers'::regclass AND attname = 'companyId'
+                      )
+                ) AS exists`
+            )
+            if (!fkExists[0]?.exists) {
+                await ds.query(
+                    `ALTER TABLE "drivers" ADD CONSTRAINT "fk_drivers_company"
+                     FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT`
+                )
+            }
         }
     } finally {
         await ds.destroy()

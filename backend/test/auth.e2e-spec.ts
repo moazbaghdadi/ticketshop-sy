@@ -318,20 +318,44 @@ describe('Auth (e2e)', () => {
             expect(res.status).toBe(403)
         })
 
-        it('rejects a JWT with an unknown role (legacy "agent")', async () => {
-            // Sign a token with a role that JwtStrategy.validate() should reject.
+        it('rejects a JWT pointing at a user that no longer exists', async () => {
+            // JwtStrategy.validate() re-loads the user from DB; a deleted/unknown sub → 401.
             const company = await createCompany(testApp.dataSource, 'شركة')
-            const u = await createUser(testApp.app, testApp.dataSource, {
-                email: 'legacy@test.com',
+            const jwt = testApp.app.get(JwtService)
+            const ghostToken = jwt.sign({
+                sub: '00000000-0000-0000-0000-000000000000',
+                email: 'ghost@test.com',
                 companyId: company.id,
                 role: 'admin',
             })
-            const jwt = testApp.app.get(JwtService)
-            const badToken = jwt.sign({ sub: u.id, email: u.email, companyId: u.companyId, role: 'agent' })
             const res = await request(testApp.app.getHttpServer())
                 .get('/api/v1/auth/me')
-                .set('Authorization', `Bearer ${badToken}`)
+                .set('Authorization', `Bearer ${ghostToken}`)
             expect(res.status).toBe(401)
+        })
+
+        it("uses the user's current companyId from DB, ignoring the JWT's stale value", async () => {
+            // Defends against the Railway 2026-04-26 stale-token bug: JWT had a deleted
+            // companyId; the request was hitting FK violations on inserts. Now JwtStrategy
+            // re-reads the user, so the request always carries the current companyId.
+            const realCompany = await createCompany(testApp.dataSource, 'شركة حقيقية')
+            const u = await createUser(testApp.app, testApp.dataSource, {
+                email: 'fresh@test.com',
+                companyId: realCompany.id,
+                role: 'admin',
+            })
+            const jwt = testApp.app.get(JwtService)
+            const staleToken = jwt.sign({
+                sub: u.id,
+                email: u.email,
+                companyId: '11111111-1111-1111-1111-111111111111',
+                role: u.role,
+            })
+            const res = await request(testApp.app.getHttpServer())
+                .get('/api/v1/auth/me')
+                .set('Authorization', `Bearer ${staleToken}`)
+            expect(res.status).toBe(200)
+            expect(res.body.data.companyId).toBe(realCompany.id)
         })
     })
 })
