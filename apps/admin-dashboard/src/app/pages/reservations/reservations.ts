@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Seat, SeatGender, segmentsOverlap } from '@ticketshop-sy/shared-models';
+import { PaymentMethod, Seat, SeatGender, segmentsOverlap } from '@ticketshop-sy/shared-models';
 import { SeatLayoutComponent, SeatLayoutSelection } from '@ticketshop-sy/shared-ui';
 import {
   CreateDashboardBookingRequest,
@@ -71,7 +71,7 @@ export class ReservationsPage implements OnInit {
   newSelections = signal<Record<number, SeatGender>>({});
   newBoarding = signal<string>('');
   newDropoff = signal<string>('');
-  newPayment = signal<'sham-cash' | 'syriatel-cash'>('sham-cash');
+  newPayment = signal<PaymentMethod>('cash');
   newName = signal<string>('');
   newPhone = signal<string>('');
   newEmail = signal<string>('');
@@ -123,6 +123,7 @@ export class ReservationsPage implements OnInit {
     this.newName.set('');
     this.newPhone.set('');
     this.newEmail.set('');
+    this.newPayment.set('cash');
     this.overrideWarning.set(null);
     this.createError.set(null);
   }

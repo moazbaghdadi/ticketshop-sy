@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { BookingResponse } from '@ticketshop-sy/shared-models';
+import { BookingResponse, PaymentMethod } from '@ticketshop-sy/shared-models';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -62,7 +62,7 @@ export interface DashboardTripDetail {
 export interface CreateDashboardBookingRequest {
   tripId: string;
   seatSelections: { seatId: number; gender: 'male' | 'female' }[];
-  paymentMethod: 'sham-cash' | 'syriatel-cash';
+  paymentMethod: PaymentMethod;
   boardingStationId: string;
   dropoffStationId: string;
   passenger: { name: string; phone: string; email?: string | null };

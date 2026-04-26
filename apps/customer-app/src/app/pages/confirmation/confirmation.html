@@ -32,7 +32,7 @@
     <h1 class="success-title">تم الحجز بنجاح!</h1>
 
     @if (trip(); as trip) {
-      <div class="ticket-card">
+      <div class="ticket-card print-area" #ticketRef>
         <div class="ticket-header">
           <span class="material-icons">confirmation_number</span>
           <span>تذكرة سفر</span>
@@ -103,6 +103,22 @@
         </div>
       </div>
     }
+
+    <div class="ticket-actions">
+      <button class="action-btn" (click)="printTicket()" [disabled]="!response()">
+        <span class="material-icons">print</span>
+        طباعة التذكرة
+      </button>
+      <button class="action-btn" (click)="downloadPdf()" [disabled]="!response() || exportingPdf()">
+        @if (exportingPdf()) {
+          <span class="material-icons spinning">sync</span>
+          جارٍ التحضير...
+        } @else {
+          <span class="material-icons">picture_as_pdf</span>
+          تنزيل PDF
+        }
+      </button>
+    </div>
 
     <button class="home-btn" (click)="goHome()">
       <span class="material-icons">home</span>

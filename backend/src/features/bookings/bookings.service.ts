@@ -6,7 +6,7 @@ import {
     UnprocessableEntityException,
 } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import { BookingResponse, SeatGender, segmentsOverlap } from '@ticketshop-sy/shared-models'
+import { BookingResponse, PaymentMethod, SeatGender, segmentsOverlap } from '@ticketshop-sy/shared-models'
 import { randomBytes } from 'crypto'
 import { DataSource, EntityManager, Repository } from 'typeorm'
 import { CITY_MAP } from '../../common/data/cities.data'
@@ -27,6 +27,10 @@ export class BookingsService {
     ) {}
 
     async createBooking(dto: CreateBookingDto): Promise<BookingResponse> {
+        if (dto.paymentMethod === 'cash') {
+            // Cash settlement is staff-only — surfaced through the dashboard new-booking modal.
+            throw new BadRequestException('Cash payment is not available on the customer app')
+        }
         const { booking } = await this.createBookingInternal(dto, { enforceGender: true })
         return booking
     }
@@ -216,7 +220,7 @@ export class BookingsService {
                 col: d.col,
                 gender: d.gender,
             })),
-            paymentMethod: booking.paymentMethod as 'sham-cash' | 'syriatel-cash',
+            paymentMethod: booking.paymentMethod as PaymentMethod,
             totalPrice: booking.totalPrice,
             status: booking.status,
             createdAt: booking.createdAt.toISOString(),

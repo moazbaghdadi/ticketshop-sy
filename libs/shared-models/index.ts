@@ -41,7 +41,18 @@ export interface Seat {
 
 export type SeatGender = 'male' | 'female';
 
-export type PaymentMethod = 'sham-cash' | 'syriatel-cash';
+export type PaymentMethod = 'sham-cash' | 'syriatel-cash' | 'cash';
+
+/**
+ * Payment methods that customers can self-select on the customer-facing checkout.
+ * `cash` is excluded — it's only available to staff via the admin-dashboard.
+ */
+export const CUSTOMER_PAYMENT_METHODS: readonly PaymentMethod[] = ['sham-cash', 'syriatel-cash'];
+
+/**
+ * Payment methods staff can record from the admin-dashboard new-booking modal.
+ */
+export const DASHBOARD_PAYMENT_METHODS: readonly PaymentMethod[] = ['cash', 'sham-cash', 'syriatel-cash'];
 
 export interface SeatSelection {
   seatId: number;

@@ -62,3 +62,26 @@ a {
   text-decoration: none;
   color: inherit;
 }
+
+@media print {
+  body.printing-ticket {
+    background: #fff;
+  }
+
+  body.printing-ticket * {
+    visibility: hidden;
+  }
+
+  body.printing-ticket .print-area,
+  body.printing-ticket .print-area * {
+    visibility: visible;
+  }
+
+  body.printing-ticket .print-area {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    background: #fff;
+    box-shadow: none;
+  }
+}

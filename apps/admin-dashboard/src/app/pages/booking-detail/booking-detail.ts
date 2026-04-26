@@ -233,6 +233,7 @@ export class BookingDetailPage implements OnInit {
   paymentLabel(method: string): string {
     if (method === 'sham-cash') return 'شام كاش';
     if (method === 'syriatel-cash') return 'سيريتل كاش';
+    if (method === 'cash') return 'دفع نقدي';
     return method;
   }
 

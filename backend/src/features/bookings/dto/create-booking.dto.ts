@@ -54,8 +54,8 @@ export class CreateBookingDto {
     seatSelections!: SeatSelectionDto[]
 
     @IsString()
-    @IsIn(['sham-cash', 'syriatel-cash'])
-    paymentMethod!: 'sham-cash' | 'syriatel-cash'
+    @IsIn(['sham-cash', 'syriatel-cash', 'cash'])
+    paymentMethod!: 'sham-cash' | 'syriatel-cash' | 'cash'
 
     @IsString()
     @IsNotEmpty()

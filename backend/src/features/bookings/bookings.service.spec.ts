@@ -195,6 +195,22 @@ describe('BookingsService', () => {
         await expect(service.createBooking(validDto)).rejects.toThrow(NotFoundException)
     })
 
+    it('rejects cash payment on the customer-facing createBooking', async () => {
+        const dto: CreateBookingDto = { ...validDto, paymentMethod: 'cash' }
+        await expect(service.createBooking(dto)).rejects.toThrow(BadRequestException)
+        expect(tripRepository.findOne).not.toHaveBeenCalled()
+    })
+
+    it('accepts cash payment via createBookingInternal (dashboard path)', async () => {
+        tripRepository.findOne.mockResolvedValue(mockTrip)
+        bookingRepository.find.mockResolvedValue([])
+        bookingRepository.findOne.mockResolvedValue(null)
+
+        const dto: CreateBookingDto = { ...validDto, paymentMethod: 'cash' }
+        const { booking } = await service.createBookingInternal(dto, { enforceGender: false })
+        expect(booking.paymentMethod).toBe('cash')
+    })
+
     it('throws BadRequestException when boarding is not on the trip', async () => {
         tripRepository.findOne.mockResolvedValue(mockTrip)
         const dto = { ...validDto, boardingStationId: 'latakia' }

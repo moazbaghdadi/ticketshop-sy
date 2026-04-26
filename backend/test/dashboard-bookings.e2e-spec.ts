@@ -382,4 +382,38 @@ describe('Dashboard bookings: search/get/update/cancel/reactivate/email/csv (e2e
             expect(body).toMatch(/"مع, فاصلة"/)
         })
     })
+
+    describe('paymentMethod: cash (dashboard-only)', () => {
+        it('accepts cash on POST /dashboard/bookings and persists it on the booking', async () => {
+            const { admin, trip } = await setupOneBooking()
+            const res = await request(testApp.app.getHttpServer())
+                .post('/api/v1/dashboard/bookings')
+                .set('Authorization', `Bearer ${admin.accessToken}`)
+                .send({
+                    tripId: trip.id,
+                    seatSelections: [{ seatId: 7, gender: 'male' }],
+                    paymentMethod: 'cash',
+                    boardingStationId: 'damascus',
+                    dropoffStationId: 'aleppo',
+                    passenger: { name: 'دفع نقدي', phone: '0900000002' },
+                })
+            expect(res.status).toBe(201)
+            expect(res.body.data.paymentMethod).toBe('cash')
+        })
+
+        it('rejects cash on the customer POST /bookings endpoint with 400', async () => {
+            const { trip } = await setupOneBooking()
+            const res = await request(testApp.app.getHttpServer())
+                .post('/api/v1/bookings')
+                .send({
+                    tripId: trip.id,
+                    seatSelections: [{ seatId: 8, gender: 'male' }],
+                    paymentMethod: 'cash',
+                    boardingStationId: 'damascus',
+                    dropoffStationId: 'aleppo',
+                    passenger: { name: 'محاولة نقدية', phone: '0900000003' },
+                })
+            expect(res.status).toBe(400)
+        })
+    })
 })

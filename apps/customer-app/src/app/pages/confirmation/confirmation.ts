@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BookingResponse } from '@ticketshop-sy/shared-models';
 import { ApiService } from '../../services/api.service';
@@ -19,6 +19,9 @@ export class ConfirmationPage implements OnInit {
   response = signal<BookingResponse | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+  exportingPdf = signal(false);
+
+  ticketRef = viewChild<ElementRef<HTMLElement>>('ticketRef');
 
   trip = computed(() => this.response()?.trip ?? null);
   seatNumbers = computed(() => this.response()?.seats.join('، ') ?? '');
@@ -68,5 +71,44 @@ export class ConfirmationPage implements OnInit {
   goHome(): void {
     this.booking.reset();
     this.router.navigate(['/']);
+  }
+
+  printTicket(): void {
+    const reference = this.reference();
+    const previousTitle = document.title;
+    if (reference) document.title = `Ticket-${reference}`;
+    document.body.classList.add('printing-ticket');
+    setTimeout(() => {
+      window.print();
+      document.body.classList.remove('printing-ticket');
+      document.title = previousTitle;
+    }, 50);
+  }
+
+  async downloadPdf(): Promise<void> {
+    const node = this.ticketRef()?.nativeElement;
+    const reference = this.reference();
+    if (!node || this.exportingPdf()) return;
+
+    this.exportingPdf.set(true);
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas-pro'),
+        import('jspdf'),
+      ]);
+      const canvas = await html2canvas(node, { backgroundColor: '#ffffff', scale: 2 });
+      const imageData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 32;
+      const maxWidth = pageWidth - margin * 2;
+      const ratio = canvas.height / canvas.width;
+      const renderWidth = maxWidth;
+      const renderHeight = renderWidth * ratio;
+      pdf.addImage(imageData, 'PNG', margin, margin, renderWidth, renderHeight);
+      pdf.save(`ticket-${reference || 'booking'}.pdf`);
+    } finally {
+      this.exportingPdf.set(false);
+    }
   }
 }
