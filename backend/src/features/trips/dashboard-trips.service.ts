@@ -4,6 +4,8 @@ import { In, Repository } from 'typeorm'
 import { CITIES, CITY_IDS, CITY_MAP } from '../../common/data/cities.data'
 import { arabicNormalize } from '../../common/util/arabic-normalize'
 import { BookingEntity } from '../bookings/entities/booking.entity'
+import { DriversService } from '../drivers/drivers.service'
+import { DriverEntity } from '../drivers/entities/driver.entity'
 import { CreateDashboardTripDto } from './dto/create-dashboard-trip.dto'
 import { CancelledTripDismissalEntity } from './entities/cancelled-trip-dismissal.entity'
 import { TripSegmentPriceEntity } from './entities/trip-segment-price.entity'
@@ -23,6 +25,7 @@ export interface DashboardTripSummary {
     seatsSold: number
     cancelledAt: string | null
     cancelledReason: string | null
+    driver: { id: string; nameAr: string } | null
 }
 
 export interface DashboardTripListResult {
@@ -54,6 +57,7 @@ export interface DashboardTripDetail {
     id: string
     date: string
     companyId: string
+    driver: { id: string; nameAr: string }
     cancelledAt: string | null
     cancelledReason: string | null
     stations: {
@@ -94,7 +98,8 @@ export class DashboardTripsService {
         @InjectRepository(BookingEntity)
         private readonly bookingRepository: Repository<BookingEntity>,
         @InjectRepository(CancelledTripDismissalEntity)
-        private readonly dismissalRepository: Repository<CancelledTripDismissalEntity>
+        private readonly dismissalRepository: Repository<CancelledTripDismissalEntity>,
+        private readonly driversService: DriversService
     ) {}
 
     async listTrips(companyId: string, opts: ListTripsOptions = {}): Promise<DashboardTripListResult> {
@@ -184,7 +189,7 @@ export class DashboardTripsService {
 
         const tripsWithStations = await this.tripRepository.find({
             where: { id: In(tripIds) },
-            relations: { stations: true },
+            relations: { stations: true, driver: true },
         })
         const tripById = new Map(tripsWithStations.map(t => [t.id, t]))
 
@@ -216,6 +221,7 @@ export class DashboardTripsService {
                 seatsSold: agg.seats,
                 cancelledAt: t.cancelledAt ? t.cancelledAt.toISOString() : null,
                 cancelledReason: t.cancelledReason ?? null,
+                driver: full.driver ? { id: full.driver.id, nameAr: full.driver.nameAr } : null,
             }
         })
 
@@ -235,7 +241,7 @@ export class DashboardTripsService {
     async getTripDetail(companyId: string, tripId: string): Promise<DashboardTripDetail> {
         const trip = await this.tripRepository.findOne({
             where: { id: tripId },
-            relations: { stations: true },
+            relations: { stations: true, driver: true },
         })
         if (!trip) {
             throw new NotFoundException(`Trip ${tripId} not found`)
@@ -253,6 +259,7 @@ export class DashboardTripsService {
             id: trip.id,
             date: trip.date,
             companyId: trip.companyId,
+            driver: { id: trip.driver.id, nameAr: trip.driver.nameAr },
             cancelledAt: trip.cancelledAt ? trip.cancelledAt.toISOString() : null,
             cancelledReason: trip.cancelledReason ?? null,
             stations: sortStations(trip.stations ?? []).map(s => ({
@@ -322,8 +329,11 @@ export class DashboardTripsService {
     async create(companyId: string, dto: CreateDashboardTripDto): Promise<TripEntity> {
         this.validate(dto)
 
+        const driver = await this.resolveDriver(companyId, dto.driver)
+
         const trip = this.tripRepository.create({
             companyId,
+            driverId: driver.id,
             date: dto.date,
             stations: dto.stations.map(s =>
                 Object.assign(new TripStationEntity(), {
@@ -343,6 +353,16 @@ export class DashboardTripsService {
         })
 
         return this.tripRepository.save(trip)
+    }
+
+    private async resolveDriver(companyId: string, driver: { id?: string; name?: string } | undefined): Promise<DriverEntity> {
+        if (!driver || (!driver.id && !driver.name)) {
+            throw new BadRequestException('driver: either id or name is required')
+        }
+        if (driver.id) {
+            return this.driversService.resolveActive(companyId, driver.id)
+        }
+        return this.driversService.findOrCreate(companyId, driver.name!)
     }
 
     private validate(dto: CreateDashboardTripDto): void {

@@ -47,6 +47,7 @@ export async function truncateAll(dataSource: DataSource): Promise<void> {
         'trip_segment_prices',
         'trip_stations',
         'trips',
+        'drivers',
         'invitations',
         'users',
         'companies',

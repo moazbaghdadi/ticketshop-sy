@@ -138,9 +138,19 @@ export class TripsSeederService {
         private readonly tripRepository: Repository<TripEntity>
     ) {}
 
-    async seed(companies: CompanyEntity[], daysBehind: number = 30, daysAhead: number = 7): Promise<number> {
+    async seed(
+        companies: CompanyEntity[],
+        driverIdByCompany: Map<string, string>,
+        daysBehind: number = 30,
+        daysAhead: number = 7
+    ): Promise<number> {
         if (companies.length === 0) {
             throw new Error('TripsSeederService.seed requires at least one company')
+        }
+        for (const c of companies) {
+            if (!driverIdByCompany.get(c.id)) {
+                throw new Error(`TripsSeederService.seed: missing driver for company ${c.id}`)
+            }
         }
 
         const companyIds = companies.map(c => c.id)
@@ -160,6 +170,7 @@ export class TripsSeederService {
                     for (const g of generated) {
                         const trip = this.tripRepository.create({
                             companyId: g.companyId,
+                            driverId: driverIdByCompany.get(g.companyId)!,
                             date: g.date,
                             stations: g.stations.map(s =>
                                 Object.assign(new TripStationEntity(), {

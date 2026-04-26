@@ -1,5 +1,6 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 import { CompanyEntity } from '../../companies/entities/company.entity'
+import { DriverEntity } from '../../drivers/entities/driver.entity'
 import { TripSegmentPriceEntity } from './trip-segment-price.entity'
 import { TripStationEntity } from './trip-station.entity'
 
@@ -15,6 +16,14 @@ export class TripEntity {
     @ManyToOne(() => CompanyEntity, { onDelete: 'RESTRICT' })
     @JoinColumn({ name: 'companyId' })
     company!: CompanyEntity
+
+    @Index()
+    @Column('uuid')
+    driverId!: string
+
+    @ManyToOne(() => DriverEntity, { onDelete: 'RESTRICT' })
+    @JoinColumn({ name: 'driverId' })
+    driver!: DriverEntity
 
     @Index()
     @Column('date')

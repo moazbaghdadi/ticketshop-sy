@@ -272,6 +272,7 @@ describe('Auth (e2e)', () => {
                 .set('Authorization', `Bearer ${sales.accessToken}`)
                 .send({
                     date: '2026-05-01',
+                    driver: { name: 'سائق' },
                     stations: damascusHomsAleppoStations(),
                     segmentPrices: damascusHomsAleppoPrices(),
                 })

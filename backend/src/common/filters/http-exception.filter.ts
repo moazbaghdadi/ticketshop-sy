@@ -7,7 +7,10 @@ interface ErrorResponseBody {
     message: string | string[]
     error: string
     timestamp: string
+    [extra: string]: unknown
 }
+
+const STANDARD_KEYS = new Set(['statusCode', 'message', 'error', 'timestamp'])
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -21,6 +24,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         let status = HttpStatus.INTERNAL_SERVER_ERROR
         let message: string | string[] = 'Internal server error'
         let error = 'Internal Server Error'
+        let extras: Record<string, unknown> | undefined
 
         if (exception instanceof HttpException) {
             status = exception.getStatus()
@@ -29,6 +33,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
                 const resp = exceptionResponse as Record<string, unknown>
                 message = (resp['message'] as string | string[]) ?? exception.message
                 error = (resp['error'] as string) ?? exception.name
+                // Preserve any extra fields the thrower attached to the exception payload (e.g.
+                // ConflictException carrying upcomingTripCount + sampleTripDates) — drops would
+                // erase actionable info the client needs to recover.
+                for (const [k, v] of Object.entries(resp)) {
+                    if (!STANDARD_KEYS.has(k)) {
+                        extras = extras ?? {}
+                        extras[k] = v
+                    }
+                }
             } else {
                 message = exception.message
             }
@@ -45,6 +58,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             message,
             error,
             timestamp: new Date().toISOString(),
+            ...(extras ?? {}),
         }
 
         response.status(status).json(body)

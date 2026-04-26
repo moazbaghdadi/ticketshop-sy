@@ -1,4 +1,4 @@
-import { ArgumentsHost, BadRequestException, Logger } from '@nestjs/common'
+import { ArgumentsHost, BadRequestException, ConflictException, Logger } from '@nestjs/common'
 import { GlobalExceptionFilter } from './http-exception.filter'
 
 interface MockResponse {
@@ -76,5 +76,29 @@ describe('GlobalExceptionFilter', () => {
 
         expect(response.status).toHaveBeenCalledWith(400)
         expect(errorSpy).not.toHaveBeenCalled()
+    })
+
+    it('forwards extra object fields from HttpException payload (e.g. conflict info)', () => {
+        const response = makeResponse()
+        const host = makeHost('DELETE', '/api/v1/dashboard/drivers/d-1', {}, response)
+
+        filter.catch(
+            new ConflictException({
+                message: 'Driver assigned to upcoming trips',
+                upcomingTripCount: 3,
+                sampleTripDates: ['2030-01-01', '2030-01-02'],
+            }),
+            host
+        )
+
+        expect(response.status).toHaveBeenCalledWith(409)
+        expect(response.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                statusCode: 409,
+                message: 'Driver assigned to upcoming trips',
+                upcomingTripCount: 3,
+                sampleTripDates: ['2030-01-01', '2030-01-02'],
+            })
+        )
     })
 })

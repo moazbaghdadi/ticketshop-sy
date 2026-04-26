@@ -103,6 +103,11 @@ export type UserRole = 'admin' | 'sales';
 
 export const USER_ROLES: readonly UserRole[] = ['admin', 'sales'];
 
+export interface Driver {
+  id: string;
+  nameAr: string;
+}
+
 /**
  * Returns true when the two half-open segments [aStart, aEnd) and [bStart, bEnd) overlap.
  * Segments that merely touch (a.end == b.start) do NOT overlap — so a passenger dropping

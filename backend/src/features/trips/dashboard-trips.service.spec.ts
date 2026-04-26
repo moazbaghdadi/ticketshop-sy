@@ -3,6 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { BookingEntity } from '../bookings/entities/booking.entity'
+import { DriverEntity } from '../drivers/entities/driver.entity'
+import { DriversService } from '../drivers/drivers.service'
 import { DashboardTripsService } from './dashboard-trips.service'
 import { CreateDashboardTripDto } from './dto/create-dashboard-trip.dto'
 import { CancelledTripDismissalEntity } from './entities/cancelled-trip-dismissal.entity'
@@ -13,6 +15,15 @@ describe('DashboardTripsService', () => {
     let repository: jest.Mocked<Repository<TripEntity>>
     let bookingRepository: jest.Mocked<Repository<BookingEntity>>
     let dismissalRepository: jest.Mocked<Repository<CancelledTripDismissalEntity>>
+    let driversService: jest.Mocked<DriversService>
+
+    const driverFixture: DriverEntity = {
+        id: 'driver-uuid',
+        companyId: 'company-uuid',
+        nameAr: 'سائق ١',
+        deletedAt: null,
+        createdAt: new Date(),
+    } as DriverEntity
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -43,6 +54,13 @@ describe('DashboardTripsService', () => {
                         save: jest.fn(async (e: Partial<CancelledTripDismissalEntity>) => e as CancelledTripDismissalEntity),
                     },
                 },
+                {
+                    provide: DriversService,
+                    useValue: {
+                        resolveActive: jest.fn(async () => driverFixture),
+                        findOrCreate: jest.fn(async (_: string, name: string) => ({ ...driverFixture, nameAr: name })),
+                    },
+                },
             ],
         }).compile()
 
@@ -50,10 +68,12 @@ describe('DashboardTripsService', () => {
         repository = module.get(getRepositoryToken(TripEntity))
         bookingRepository = module.get(getRepositoryToken(BookingEntity))
         dismissalRepository = module.get(getRepositoryToken(CancelledTripDismissalEntity))
+        driversService = module.get(DriversService)
     })
 
     const validDto: CreateDashboardTripDto = {
         date: '2026-04-20',
+        driver: { id: 'driver-uuid' },
         stations: [
             { cityId: 'damascus', order: 0, arrivalTime: null, departureTime: '06:00' },
             { cityId: 'homs', order: 1, arrivalTime: '07:30', departureTime: '07:40' },
@@ -73,9 +93,22 @@ describe('DashboardTripsService', () => {
         expect(repository.save).toHaveBeenCalled()
         const saved = repository.create.mock.calls[0]![0] as Partial<TripEntity>
         expect(saved.companyId).toBe('company-uuid')
+        expect(saved.driverId).toBe('driver-uuid')
         expect(saved.date).toBe('2026-04-20')
         expect(saved.stations).toHaveLength(3)
         expect(saved.segmentPrices).toHaveLength(3)
+        expect(driversService.resolveActive).toHaveBeenCalledWith('company-uuid', 'driver-uuid')
+    })
+
+    it('find-or-creates a driver when only a name is supplied', async () => {
+        const dto = { ...validDto, driver: { name: 'سائق جديد' } }
+        await service.create('company-uuid', dto)
+        expect(driversService.findOrCreate).toHaveBeenCalledWith('company-uuid', 'سائق جديد')
+    })
+
+    it('rejects when driver is missing both id and name', async () => {
+        const dto = { ...validDto, driver: {} }
+        await expect(service.create('company-uuid', dto)).rejects.toThrow(/either id or name/)
     })
 
     it('rejects routes with unknown cityIds', async () => {

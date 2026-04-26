@@ -5,6 +5,8 @@ import { InvitationEntity } from '../features/auth/entities/invitation.entity'
 import { UserEntity } from '../features/auth/entities/user.entity'
 import { BookingEntity } from '../features/bookings/entities/booking.entity'
 import { CompanyEntity } from '../features/companies/entities/company.entity'
+import { DriversService } from '../features/drivers/drivers.service'
+import { DriverEntity } from '../features/drivers/entities/driver.entity'
 import { CancelledTripDismissalEntity } from '../features/trips/entities/cancelled-trip-dismissal.entity'
 import { TripSegmentPriceEntity } from '../features/trips/entities/trip-segment-price.entity'
 import { TripStationEntity } from '../features/trips/entities/trip-station.entity'
@@ -27,6 +29,7 @@ import { TripsSeederService } from './trips-seeder.service'
                     UserEntity,
                     InvitationEntity,
                     CompanyEntity,
+                    DriverEntity,
                     TripEntity,
                     TripStationEntity,
                     TripSegmentPriceEntity,
@@ -38,6 +41,7 @@ import { TripsSeederService } from './trips-seeder.service'
         }),
         TypeOrmModule.forFeature([
             CompanyEntity,
+            DriverEntity,
             TripEntity,
             TripStationEntity,
             TripSegmentPriceEntity,
@@ -45,6 +49,6 @@ import { TripsSeederService } from './trips-seeder.service'
             BookingEntity,
         ]),
     ],
-    providers: [SeederService, CompaniesSeederService, TripsSeederService, BookingsSeederService],
+    providers: [SeederService, CompaniesSeederService, DriversService, TripsSeederService, BookingsSeederService],
 })
 export class SeederModule {}

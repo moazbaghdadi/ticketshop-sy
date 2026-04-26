@@ -34,6 +34,7 @@ describe('Dashboard trip create/cancel/dismiss (e2e)', () => {
                 .set('Authorization', `Bearer ${admin.accessToken}`)
                 .send({
                     date: '2026-05-10',
+                    driver: { name: 'سائق' },
                     stations: damascusHomsAleppoStations(),
                     segmentPrices: damascusHomsAleppoPrices(),
                 })
@@ -63,6 +64,7 @@ describe('Dashboard trip create/cancel/dismiss (e2e)', () => {
                 .set('Authorization', `Bearer ${admin.accessToken}`)
                 .send({
                     date: '2026-05-10',
+                    driver: { name: 'سائق' },
                     stations: [{ cityId: 'damascus', order: 0, arrivalTime: null, departureTime: '08:00' }],
                     segmentPrices: [{ fromCityId: 'damascus', toCityId: 'homs', price: 1000 }],
                 })
@@ -83,6 +85,7 @@ describe('Dashboard trip create/cancel/dismiss (e2e)', () => {
                 .set('Authorization', `Bearer ${admin.accessToken}`)
                 .send({
                     date: '2026-05-10',
+                    driver: { name: 'سائق' },
                     stations: [
                         { cityId: 'damascus', order: 0, arrivalTime: null, departureTime: '08:00' },
                         { cityId: 'damascus', order: 1, arrivalTime: '09:00', departureTime: null },
@@ -107,6 +110,7 @@ describe('Dashboard trip create/cancel/dismiss (e2e)', () => {
                 .set('Authorization', `Bearer ${admin.accessToken}`)
                 .send({
                     date: '2026-05-10',
+                    driver: { name: 'سائق' },
                     stations: [
                         { cityId: 'damascus', order: 0, arrivalTime: null, departureTime: null },
                         { cityId: 'homs', order: 1, arrivalTime: '10:00', departureTime: null },
@@ -131,6 +135,7 @@ describe('Dashboard trip create/cancel/dismiss (e2e)', () => {
                 .set('Authorization', `Bearer ${admin.accessToken}`)
                 .send({
                     date: '2026-05-10',
+                    driver: { name: 'سائق' },
                     stations: [
                         { cityId: 'damascus', order: 0, arrivalTime: null, departureTime: '12:00' },
                         { cityId: 'homs', order: 1, arrivalTime: '08:00', departureTime: null },
@@ -155,6 +160,7 @@ describe('Dashboard trip create/cancel/dismiss (e2e)', () => {
                 .set('Authorization', `Bearer ${admin.accessToken}`)
                 .send({
                     date: '2026-05-10',
+                    driver: { name: 'سائق' },
                     stations: damascusHomsAleppoStations(),
                     // missing damascus → aleppo
                     segmentPrices: [
@@ -180,6 +186,7 @@ describe('Dashboard trip create/cancel/dismiss (e2e)', () => {
                 .set('Authorization', `Bearer ${admin.accessToken}`)
                 .send({
                     date: '2026-05-10',
+                    driver: { name: 'سائق' },
                     stations: [
                         { cityId: 'damascus', order: 0, arrivalTime: null, departureTime: '08:00' },
                         { cityId: 'atlantis', order: 1, arrivalTime: '10:00', departureTime: null },
@@ -204,6 +211,7 @@ describe('Dashboard trip create/cancel/dismiss (e2e)', () => {
                 .set('Authorization', `Bearer ${sales.accessToken}`)
                 .send({
                     date: '2026-05-10',
+                    driver: { name: 'سائق' },
                     stations: damascusHomsAleppoStations(),
                     segmentPrices: damascusHomsAleppoPrices(),
                 })

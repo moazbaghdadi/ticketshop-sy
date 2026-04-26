@@ -2,10 +2,11 @@ import { INestApplication } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { UserRole } from '@ticketshop-sy/shared-models'
 import * as bcrypt from 'bcryptjs'
-import { DataSource } from 'typeorm'
+import { DataSource, IsNull } from 'typeorm'
 import { UserEntity } from '../../src/features/auth/entities/user.entity'
 import { JwtPayload } from '../../src/features/auth/jwt.strategy'
 import { CompanyEntity } from '../../src/features/companies/entities/company.entity'
+import { DriverEntity } from '../../src/features/drivers/entities/driver.entity'
 import { TripSegmentPriceEntity } from '../../src/features/trips/entities/trip-segment-price.entity'
 import { TripStationEntity } from '../../src/features/trips/entities/trip-station.entity'
 import { TripEntity } from '../../src/features/trips/entities/trip.entity'
@@ -63,18 +64,38 @@ export interface PriceDef {
 }
 
 /**
+ * Find or create a driver for the given company. Used by createTrip to satisfy the NOT-NULL
+ * driverId constraint when callers don't supply one explicitly.
+ */
+export async function ensureDriver(ds: DataSource, companyId: string, nameAr = 'سائق اختبار'): Promise<DriverEntity> {
+    const repo = ds.getRepository(DriverEntity)
+    const existing = await repo.findOne({ where: { companyId, nameAr, deletedAt: IsNull() } })
+    if (existing) return existing
+    return repo.save(repo.create({ companyId, nameAr, deletedAt: null }))
+}
+
+export async function createDriver(ds: DataSource, companyId: string, nameAr: string): Promise<DriverEntity> {
+    const repo = ds.getRepository(DriverEntity)
+    return repo.save(repo.create({ companyId, nameAr, deletedAt: null }))
+}
+
+/**
  * Create a trip directly in the database with stations + segment prices wired in.
  * Bypasses DashboardTripsService.create() validation so tests can stage routes
  * (including ones that wouldn't pass dashboard validation) for the read endpoints.
+ *
+ * If driverId is omitted, a default driver for the company is auto-created via ensureDriver.
  */
 export async function createTrip(
     ds: DataSource,
-    opts: { companyId: string; date: string; stations: StationDef[]; prices: PriceDef[] }
+    opts: { companyId: string; driverId?: string; date: string; stations: StationDef[]; prices: PriceDef[] }
 ): Promise<TripEntity> {
     const repo = ds.getRepository(TripEntity)
+    const driverId = opts.driverId ?? (await ensureDriver(ds, opts.companyId)).id
     const trip = await repo.save(
         repo.create({
             companyId: opts.companyId,
+            driverId,
             date: opts.date,
             stations: opts.stations.map(s =>
                 Object.assign(new TripStationEntity(), {
@@ -96,7 +117,7 @@ export async function createTrip(
     // Reload so .stations / .segmentPrices come back populated for callers that need them.
     return repo.findOneOrFail({
         where: { id: trip.id },
-        relations: { stations: true, segmentPrices: true, company: true },
+        relations: { stations: true, segmentPrices: true, company: true, driver: true },
     })
 }
 

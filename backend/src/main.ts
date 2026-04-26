@@ -3,12 +3,14 @@ import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module'
+import { ensureDriversBackfilled } from './common/bootstrap/ensure-drivers-backfilled'
 import { ensureRoleColumnBackfilled } from './common/bootstrap/ensure-role-column'
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter'
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor'
 
 async function bootstrap(): Promise<void> {
     await ensureRoleColumnBackfilled()
+    await ensureDriversBackfilled()
     const app = await NestFactory.create(AppModule)
 
     const configService = app.get(ConfigService)

@@ -7,6 +7,7 @@ import { AuthModule } from './features/auth/auth.module'
 import { BookingsModule } from './features/bookings/bookings.module'
 import { CompaniesModule } from './features/companies/companies.module'
 import { DashboardModule } from './features/dashboard/dashboard.module'
+import { DriversModule } from './features/drivers/drivers.module'
 import { MailModule } from './features/mail/mail.module'
 import { SeatsModule } from './features/seats/seats.module'
 import { TripsModule } from './features/trips/trips.module'
@@ -29,6 +30,7 @@ import { TripsModule } from './features/trips/trips.module'
         CompaniesModule,
         AuthModule,
         MailModule,
+        DriversModule,
         TripsModule,
         SeatsModule,
         BookingsModule,
