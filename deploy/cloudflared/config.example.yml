@@ -1,0 +1,18 @@
+# Append these three rules to your EXISTING cloudflared LXC's config.yml,
+# replacing <TICKETSHOP_LXC_IP> with this LXC's IP on the Proxmox bridge
+# (e.g. 192.168.1.42). Then restart the cloudflared service in that LXC.
+#
+# Also run on your laptop (once each, with the existing tunnel name):
+#   cloudflared tunnel route dns <existing-tunnel> api.ts.ce-svcs.cc
+#   cloudflared tunnel route dns <existing-tunnel> book.ts.ce-svcs.cc
+#   cloudflared tunnel route dns <existing-tunnel> admin.ts.ce-svcs.cc
+
+ingress:
+  - hostname: api.ts.ce-svcs.cc
+    service: http://<TICKETSHOP_LXC_IP>:3000
+  - hostname: book.ts.ce-svcs.cc
+    service: http://<TICKETSHOP_LXC_IP>:8080
+  - hostname: admin.ts.ce-svcs.cc
+    service: http://<TICKETSHOP_LXC_IP>:8081
+  # ... your existing ingress rules continue here ...
+  # - service: http_status:404   # this catch-all stays at the bottom

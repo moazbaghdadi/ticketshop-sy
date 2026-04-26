@@ -1,0 +1,5 @@
+.env
+postgres-data/
+backups/
+cloudflared/*.json
+cloudflared/config.yml

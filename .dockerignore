@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.angular
+**/coverage
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+*.log
+deploy/postgres-data
+deploy/backups
+deploy/cloudflared/*.json
+deploy/.env
