@@ -104,10 +104,7 @@ function minutesFromRef(time: string | null, ref: number, ctx: string): number {
  * Last station: arrivalTime = firstDepartureTime + lastArrivalOffsetMin, departureTime = null.
  * Intermediate stations: both filled.
  */
-export function instantiateTemplate(
-    stations: TemplateStationData[],
-    firstDepartureTime: string
-): InstantiatedStation[] {
+export function instantiateTemplate(stations: TemplateStationData[], firstDepartureTime: string): InstantiatedStation[] {
     if (stations.length === 0) return []
     const ref = parseHm(firstDepartureTime)
     const sorted = [...stations].sort((a, b) => a.order - b.order)

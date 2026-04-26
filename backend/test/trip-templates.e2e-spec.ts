@@ -207,7 +207,11 @@ describe('Dashboard trip templates (e2e)', () => {
                 .get(`/api/v1/dashboard/trips/${tripId}/bookings`)
                 .set('Authorization', `Bearer ${user.accessToken}`)
             expect(detail.status).toBe(200)
-            const stations = detail.body.data.stations as { cityId: string; arrivalTime: string | null; departureTime: string | null }[]
+            const stations = detail.body.data.stations as {
+                cityId: string
+                arrivalTime: string | null
+                departureTime: string | null
+            }[]
             // damascus: dep=14:00, arr=null; homs: arr=15:30 (90min), dep=15:40 (100min);
             // aleppo: arr=17:30 (210min), dep=null
             expect(stations[0]).toMatchObject({ cityId: 'damascus', arrivalTime: null, departureTime: '14:00' })
@@ -260,7 +264,11 @@ describe('Dashboard trip templates (e2e)', () => {
             expect(detail.body.data.driver.id).toBe(driver.id)
             // damascusHomsAleppoStations: dep=08:00, homs arr=10:00 dep=10:15, aleppo arr=13:00.
             // Offsets: damascus 0/0, homs 120/135, aleppo 300/300.
-            const stations = detail.body.data.stations as { cityId: string; arrivalOffsetMin: number; departureOffsetMin: number }[]
+            const stations = detail.body.data.stations as {
+                cityId: string
+                arrivalOffsetMin: number
+                departureOffsetMin: number
+            }[]
             expect(stations[0]).toMatchObject({ cityId: 'damascus', arrivalOffsetMin: 0, departureOffsetMin: 0 })
             expect(stations[1]).toMatchObject({ cityId: 'homs', arrivalOffsetMin: 120, departureOffsetMin: 135 })
             expect(stations[2]).toMatchObject({ cityId: 'aleppo', arrivalOffsetMin: 300, departureOffsetMin: 300 })

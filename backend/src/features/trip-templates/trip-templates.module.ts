@@ -10,12 +10,7 @@ import { TripTemplatesService } from './trip-templates.service'
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([
-            TripTemplateEntity,
-            TripTemplateStationEntity,
-            TripTemplateSegmentPriceEntity,
-            TripEntity,
-        ]),
+        TypeOrmModule.forFeature([TripTemplateEntity, TripTemplateStationEntity, TripTemplateSegmentPriceEntity, TripEntity]),
         DriversModule,
     ],
     controllers: [TripTemplatesController],

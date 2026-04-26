@@ -37,10 +37,7 @@ export class TripTemplatesController {
 
     @Post()
     @ApiOperation({ summary: 'Create a trip template' })
-    async create(
-        @CurrentUser() user: AuthenticatedUser,
-        @Body() dto: CreateTripTemplateDto
-    ): Promise<{ data: TripTemplateDto }> {
+    async create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateTripTemplateDto): Promise<{ data: TripTemplateDto }> {
         const data = await this.service.create(user.companyId, dto)
         return { data }
     }

@@ -1,15 +1,5 @@
 import { Type } from 'class-transformer'
-import {
-    ArrayMinSize,
-    IsInt,
-    IsOptional,
-    IsString,
-    IsUUID,
-    MaxLength,
-    Min,
-    MinLength,
-    ValidateNested,
-} from 'class-validator'
+import { ArrayMinSize, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min, MinLength, ValidateNested } from 'class-validator'
 
 export class TripTemplateStationDto {
     @IsString()

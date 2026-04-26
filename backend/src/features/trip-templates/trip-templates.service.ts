@@ -2,8 +2,8 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, EntityManager, Repository } from 'typeorm'
 import { CITY_IDS } from '../../common/data/cities.data'
-import { DriverEntity } from '../drivers/entities/driver.entity'
 import { DriversService } from '../drivers/drivers.service'
+import { DriverEntity } from '../drivers/entities/driver.entity'
 import { TripSegmentPriceEntity } from '../trips/entities/trip-segment-price.entity'
 import { TripStationEntity } from '../trips/entities/trip-station.entity'
 import { TripEntity } from '../trips/entities/trip.entity'
@@ -105,12 +105,7 @@ export class TripTemplatesService {
      * Clone a template into a fresh trip. The new trip is created via the same DataSource
      * transaction that runs other trip creates, so concurrent instantiations don't race.
      */
-    async instantiate(
-        companyId: string,
-        id: string,
-        date: string,
-        firstDepartureTime: string
-    ): Promise<{ id: string }> {
+    async instantiate(companyId: string, id: string, date: string, firstDepartureTime: string): Promise<{ id: string }> {
         const template = await this.findScoped(companyId, id)
         const stations = instantiateTemplate(
             template.stations.map(s => ({
@@ -261,10 +256,7 @@ export class TripTemplatesService {
         return row
     }
 
-    private async resolveDriver(
-        companyId: string,
-        driver: { id?: string; name?: string } | undefined
-    ): Promise<DriverEntity> {
+    private async resolveDriver(companyId: string, driver: { id?: string; name?: string } | undefined): Promise<DriverEntity> {
         if (!driver || (!driver.id && !driver.name)) {
             throw new BadRequestException('driver: either id or name is required')
         }
@@ -274,11 +266,7 @@ export class TripTemplatesService {
         return this.driversService.findOrCreate(companyId, driver.name!)
     }
 
-    private buildEntity(
-        companyId: string,
-        dto: CreateTripTemplateDto,
-        driver: DriverEntity
-    ): TripTemplateEntity {
+    private buildEntity(companyId: string, dto: CreateTripTemplateDto, driver: DriverEntity): TripTemplateEntity {
         return this.templateRepo.create({
             companyId,
             nameAr: dto.nameAr.trim(),
@@ -338,16 +326,12 @@ export class TripTemplatesService {
         for (let i = 0; i < stations.length; i++) {
             const s = stations[i]!
             if (s.departureOffsetMin < s.arrivalOffsetMin) {
-                throw new BadRequestException(
-                    `Station ${s.cityId}: departureOffsetMin must be >= arrivalOffsetMin`
-                )
+                throw new BadRequestException(`Station ${s.cityId}: departureOffsetMin must be >= arrivalOffsetMin`)
             }
             if (i + 1 < stations.length) {
                 const next = stations[i + 1]!
                 if (next.arrivalOffsetMin < s.departureOffsetMin) {
-                    throw new BadRequestException(
-                        `Travel from ${s.cityId} to ${next.cityId}: offsets are not monotonic`
-                    )
+                    throw new BadRequestException(`Travel from ${s.cityId} to ${next.cityId}: offsets are not monotonic`)
                 }
             }
         }
