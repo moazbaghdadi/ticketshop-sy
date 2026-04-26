@@ -1,18 +1,22 @@
-# Append these three rules to your EXISTING cloudflared LXC's config.yml,
-# replacing <TICKETSHOP_LXC_IP> with this LXC's IP on the Proxmox bridge
-# (e.g. 192.168.1.42). Then restart the cloudflared service in that LXC.
+# If your tunnel is LOCALLY managed (cloudflared reads its own config.yml),
+# append these three rules to that file's `ingress:` section, above the
+# catch-all 404. Replace <TICKETSHOP_LXC_IP> with this LXC's IP on the
+# Proxmox bridge (e.g. 192.168.0.200), then restart cloudflared.
 #
-# Also run on your laptop (once each, with the existing tunnel name):
-#   cloudflared tunnel route dns <existing-tunnel> api.ts.ce-svcs.cc
-#   cloudflared tunnel route dns <existing-tunnel> book.ts.ce-svcs.cc
-#   cloudflared tunnel route dns <existing-tunnel> admin.ts.ce-svcs.cc
+# If your tunnel is REMOTELY managed (configured via the Cloudflare Zero
+# Trust dashboard), add three Public Hostnames in the dashboard instead —
+# Cloudflare auto-creates the DNS CNAMEs for you.
+#
+# IMPORTANT: subdomains are intentionally single-level so Cloudflare's free
+# Universal SSL covers them. *.ce-svcs.cc works out of the box; deeper
+# patterns like *.foo.ce-svcs.cc need Advanced Certificate Manager.
 
 ingress:
-  - hostname: api.ts.ce-svcs.cc
-    service: http://<TICKETSHOP_LXC_IP>:3000
-  - hostname: book.ts.ce-svcs.cc
+  - hostname: tickets-api.ce-svcs.cc
+    service: http://<TICKETSHOP_LXC_IP>:13000
+  - hostname: tickets.ce-svcs.cc
     service: http://<TICKETSHOP_LXC_IP>:8080
-  - hostname: admin.ts.ce-svcs.cc
+  - hostname: tickets-admin.ce-svcs.cc
     service: http://<TICKETSHOP_LXC_IP>:8081
   # ... your existing ingress rules continue here ...
   # - service: http_status:404   # this catch-all stays at the bottom

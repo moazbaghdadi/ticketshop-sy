@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 FROM node:22-alpine AS build
-ARG API_URL=https://api.ts.ce-svcs.cc/api/v1
+ARG API_URL=https://tickets-api.ce-svcs.cc/api/v1
 WORKDIR /repo
 
 COPY package.json package-lock.json ./
