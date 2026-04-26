@@ -95,7 +95,7 @@ npm run test:e2e -w backend   # E2E tests against an ephemeral Postgres (Testcon
 
 ### E2E test suite (`backend/test/`)
 
-End-to-end tests live in `backend/test/*.e2e-spec.ts` and run against a real Postgres started by Testcontainers (`@testcontainers/postgresql`). They require a running Docker daemon — CI must expose `/var/run/docker.sock` or set `DOCKER_HOST`. Coverage spans the major HTTP surfaces (auth, trips search, dashboard trips/bookings/overview/reports, seats, customer bookings) plus the SQL-level `FOR UPDATE` concurrency path that satisfies coding rule #2 below ("any new transactional / locking code path needs at least one integration test against a real Postgres"). The `test:e2e` script forces `TZ=UTC` because parts of the reports / overview pipeline coerce `pg`'s `Date` objects to ISO strings using local time.
+End-to-end tests live in `backend/test/*.e2e-spec.ts` and run against a real Postgres started by Testcontainers (`@testcontainers/postgresql`). They require a running Docker daemon — CI must expose `/var/run/docker.sock` or set `DOCKER_HOST`. Coverage spans the major HTTP surfaces (auth, trips search, dashboard trips/bookings/overview/reports, seats, customer bookings) plus the SQL-level `FOR UPDATE` concurrency path that satisfies coding rule #2 below ("any new transactional / locking code path needs at least one integration test against a real Postgres").
 
 ## Flow (Customer App)
 

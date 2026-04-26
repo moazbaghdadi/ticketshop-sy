@@ -148,7 +148,10 @@ export class DashboardReportsService {
             .select([
                 'booking.id AS "id"',
                 'booking.tripId AS "tripId"',
-                'trip.date AS "tripDate"',
+                // Cast to text in SQL so we get a YYYY-MM-DD string instead of pg parsing
+                // the date column into a JS Date in the system timezone (which silently rolls
+                // the day back when the backend isn't running in UTC).
+                `TO_CHAR(trip.date, 'YYYY-MM-DD') AS "tripDate"`,
                 'booking.totalPrice AS "totalPrice"',
                 'booking.seatIds AS "seatIds"',
                 'booking.boardingStationId AS "boardingStationId"',
@@ -157,7 +160,7 @@ export class DashboardReportsService {
             .getRawMany<{
                 id: string
                 tripId: string
-                tripDate: string | Date
+                tripDate: string
                 totalPrice: string | number
                 seatIds: number[]
                 boardingStationId: string
@@ -166,7 +169,7 @@ export class DashboardReportsService {
 
         return raw.map(r => ({
             tripId: r.tripId,
-            tripDate: typeof r.tripDate === 'string' ? r.tripDate : r.tripDate.toISOString().slice(0, 10),
+            tripDate: r.tripDate,
             totalPrice: Number(r.totalPrice),
             seatsCount: Array.isArray(r.seatIds) ? r.seatIds.length : 0,
             boardingStationId: r.boardingStationId,

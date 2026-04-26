@@ -218,16 +218,18 @@ export class DashboardOverviewService {
             .andWhere('booking.status = :status', { status: 'confirmed' })
             .andWhere('trip.date >= :from', { from })
             .andWhere('trip.date <= :to', { to })
-            .select('trip.date', 'date')
+            // Cast to text so we get a YYYY-MM-DD string and not a pg-parsed JS Date —
+            // the latter is interpreted in the system timezone and rolls the day backward
+            // when the backend isn't running in UTC, putting bookings into the wrong bin.
+            .select(`TO_CHAR(trip.date, 'YYYY-MM-DD')`, 'date')
             .addSelect('COALESCE(SUM(booking.totalPrice), 0)', 'revenue')
             .addSelect('COUNT(booking.id)', 'bookings')
             .groupBy('trip.date')
-            .getRawMany<{ date: string | Date; revenue: string; bookings: string }>()
+            .getRawMany<{ date: string; revenue: string; bookings: string }>()
 
         const byDate = new Map<string, { revenue: number; bookings: number }>()
         for (const r of rows) {
-            const key = typeof r.date === 'string' ? r.date : r.date.toISOString().slice(0, 10)
-            byDate.set(key, { revenue: Number(r.revenue), bookings: Number(r.bookings) })
+            byDate.set(r.date, { revenue: Number(r.revenue), bookings: Number(r.bookings) })
         }
 
         const out: SalesDayPoint[] = []
