@@ -16,6 +16,7 @@ export interface DashboardTripSummary {
   seatsSold: number;
   cancelledAt: string | null;
   cancelledReason: string | null;
+  driver: { id: string; nameAr: string } | null;
 }
 
 export interface DashboardTripListResult {
@@ -47,6 +48,7 @@ export interface DashboardTripDetail {
   id: string;
   date: string;
   companyId: string;
+  driver: { id: string; nameAr: string };
   cancelledAt: string | null;
   cancelledReason: string | null;
   stations: {
@@ -88,6 +90,7 @@ export interface ListTripsOptions {
 
 export interface CreateDashboardTripRequest {
   date: string;
+  driver: { id?: string; name?: string };
   stations: {
     cityId: string;
     order: number;

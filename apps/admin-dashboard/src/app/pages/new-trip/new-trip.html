@@ -18,6 +18,27 @@
         (ngModelChange)="date.set($event)"
       />
     </div>
+
+    <div class="field driver-field">
+      <label>السائق</label>
+      <input
+        type="text"
+        autocomplete="off"
+        placeholder="اكتب اسم السائق أو اختره من القائمة"
+        [ngModel]="driverInput()"
+        (ngModelChange)="onDriverInput($event)"
+        (focus)="onDriverFocus()"
+        (blur)="onDriverBlur()"
+      />
+      @if (driverDropdownOpen() && driverSuggestions().length > 0) {
+        <ul class="driver-suggestions">
+          @for (d of driverSuggestions(); track d.id) {
+            <li (mousedown)="pickDriver(d)">{{ d.nameAr }}</li>
+          }
+        </ul>
+      }
+      <small class="hint">إذا لم يكن السائق موجوداً، اكتب اسماً جديداً وسيُنشأ تلقائياً.</small>
+    </div>
   </section>
 
   <section class="card">

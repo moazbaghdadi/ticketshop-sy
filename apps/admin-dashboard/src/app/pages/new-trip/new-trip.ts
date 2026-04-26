@@ -1,7 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CITIES } from '../../data/cities.data';
+import { DriverDto, DriversService } from '../../services/drivers.service';
 import {
   CreateDashboardTripRequest,
   TripsService,
@@ -25,8 +26,9 @@ function hmToMinutes(hm: string): number {
   templateUrl: './new-trip.html',
   styleUrl: './new-trip.css',
 })
-export class NewTripPage {
+export class NewTripPage implements OnInit {
   private tripsService = inject(TripsService);
+  private driversService = inject(DriversService);
   private router = inject(Router);
 
   readonly cities = CITIES;
@@ -37,6 +39,16 @@ export class NewTripPage {
     { cityId: '', arrivalTime: '', departureTime: '' },
   ]);
   prices = signal<Record<string, number | null>>({});
+
+  /**
+   * Driver autocomplete state. The user types a name; we ILIKE-search the backend on focus
+   * and on each keystroke. If they pick a suggestion, driverId is set; if they keep typing
+   * a new name, driverId stays null and the backend find-or-creates by name on submit.
+   */
+  driverInput = signal<string>('');
+  driverId = signal<string | null>(null);
+  driverSuggestions = signal<DriverDto[]>([]);
+  driverDropdownOpen = signal<boolean>(false);
 
   submitting = signal(false);
   serverError = signal<string | null>(null);
@@ -62,8 +74,43 @@ export class NewTripPage {
     return out;
   });
 
+  ngOnInit(): void {
+    this.refreshDriverSuggestions();
+  }
+
   cityName(cityId: string): string {
     return CITIES.find(c => c.id === cityId)?.nameAr ?? cityId;
+  }
+
+  onDriverInput(value: string): void {
+    this.driverInput.set(value);
+    // The user is typing freely → drop any previously locked-in driver id; if they end on a
+    // typed-from-scratch name, the backend will find-or-create it on submit.
+    this.driverId.set(null);
+    this.refreshDriverSuggestions();
+  }
+
+  onDriverFocus(): void {
+    this.driverDropdownOpen.set(true);
+    this.refreshDriverSuggestions();
+  }
+
+  onDriverBlur(): void {
+    // Defer so an option click registers before we close.
+    setTimeout(() => this.driverDropdownOpen.set(false), 150);
+  }
+
+  pickDriver(driver: DriverDto): void {
+    this.driverInput.set(driver.nameAr);
+    this.driverId.set(driver.id);
+    this.driverDropdownOpen.set(false);
+  }
+
+  private refreshDriverSuggestions(): void {
+    this.driversService.list(this.driverInput()).subscribe({
+      next: res => this.driverSuggestions.set(res.data.slice(0, 8)),
+      error: () => this.driverSuggestions.set([]),
+    });
   }
 
   availableCities(index: number): { id: string; nameAr: string }[] {
@@ -132,6 +179,7 @@ export class NewTripPage {
 
   private validate(): string | null {
     if (!this.date()) return 'اختر تاريخ الرحلة';
+    if (!this.driverInput().trim()) return 'اختر السائق أو أدخل اسماً جديداً';
 
     const stations = this.stations();
     if (stations.length < 2) return 'يجب أن تحتوي الرحلة على محطتين على الأقل';
@@ -187,8 +235,10 @@ export class NewTripPage {
     if (error) return;
 
     const stations = this.stations();
+    const driverId = this.driverId();
     const body: CreateDashboardTripRequest = {
       date: this.date(),
+      driver: driverId ? { id: driverId } : { name: this.driverInput().trim() },
       stations: stations.map((s, i) => ({
         cityId: s.cityId,
         order: i,

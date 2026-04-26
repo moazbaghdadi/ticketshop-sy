@@ -1,0 +1,253 @@
+.drivers-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 22px;
+  color: var(--color-text-dark);
+}
+
+.card {
+  background: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.create-card h2,
+.section-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-text-dark);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.create-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.create-row .input {
+  flex: 1 1 240px;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.search-row .input {
+  width: 200px;
+}
+
+.input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.edit-input {
+  width: 220px;
+}
+
+.primary-btn {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border: 0;
+  padding: 0 16px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.primary-btn.small {
+  padding: 0 12px;
+  height: 30px;
+}
+
+.secondary-btn {
+  background: var(--color-white);
+  color: var(--color-text-dark);
+  border: 1px solid var(--color-border);
+  padding: 0 14px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.text-btn {
+  background: transparent;
+  border: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  color: var(--color-text-dark);
+}
+
+.icon-btn.danger:hover {
+  color: var(--color-danger, #c0392b);
+}
+
+.icon-btn .material-icons {
+  font-size: 20px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+  font-size: 13px;
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.table .actions-col {
+  width: 130px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fdecea;
+  color: #b71c1c;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.error-text {
+  color: #b71c1c;
+  font-size: 12px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: min(420px, 92vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-text-dark);
+}
+
+.modal-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.modal-body .hint {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+.modal-actions {
+  padding: 12px 18px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 12px;
+  color: var(--color-text-dark);
+}

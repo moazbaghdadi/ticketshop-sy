@@ -32,6 +32,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/new-trip/new-trip').then((m) => m.NewTripPage),
       },
       {
+        path: 'drivers',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./pages/drivers/drivers').then((m) => m.DriversPage),
+      },
+      {
         path: 'trips/:id/reservations',
         loadComponent: () =>
           import('./pages/reservations/reservations').then((m) => m.ReservationsPage),

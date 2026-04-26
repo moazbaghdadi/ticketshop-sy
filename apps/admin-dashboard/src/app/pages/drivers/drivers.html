@@ -1,0 +1,156 @@
+<div class="drivers-page">
+  <header class="page-header">
+    <h1>السائقون</h1>
+  </header>
+
+  <section class="card create-card">
+    <h2>إضافة سائق</h2>
+    <div class="create-row">
+      <input
+        class="input"
+        type="text"
+        placeholder="اسم السائق"
+        [ngModel]="newName()"
+        (ngModelChange)="newName.set($event)"
+        (keydown.enter)="create()"
+      />
+      <button class="primary-btn" [disabled]="creating()" (click)="create()">
+        @if (creating()) {
+          جارٍ الإضافة...
+        } @else {
+          إضافة
+        }
+      </button>
+    </div>
+    @if (createError(); as err) {
+      <div class="error-text">{{ err }}</div>
+    }
+  </section>
+
+  <section class="card">
+    <header class="section-header">
+      <h2>قائمة السائقين</h2>
+      <div class="search-row">
+        <input
+          class="input"
+          type="search"
+          placeholder="بحث بالاسم"
+          [ngModel]="query()"
+          (ngModelChange)="query.set($event)"
+          (keydown.enter)="onSearch()"
+        />
+        <button class="secondary-btn" (click)="onSearch()">بحث</button>
+      </div>
+    </header>
+
+    @if (loading()) {
+      <p class="empty">جارٍ التحميل...</p>
+    } @else if (error(); as err) {
+      <div class="error-banner">
+        <span class="material-icons">error_outline</span>
+        {{ err }}
+      </div>
+    } @else if (drivers().length === 0) {
+      <p class="empty">لا يوجد سائقون بعد.</p>
+    } @else {
+      <table class="table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>تاريخ الإضافة</th>
+            <th class="actions-col">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of drivers(); track d.id) {
+            <tr>
+              <td>
+                @if (editingId() === d.id) {
+                  <input
+                    class="input edit-input"
+                    type="text"
+                    [ngModel]="editingName()"
+                    (ngModelChange)="editingName.set($event)"
+                    (keydown.enter)="saveEdit()"
+                  />
+                  @if (editError(); as err) {
+                    <div class="error-text">{{ err }}</div>
+                  }
+                } @else {
+                  {{ d.nameAr }}
+                }
+              </td>
+              <td>{{ d.createdAt | date: 'yyyy-MM-dd' }}</td>
+              <td class="row-actions">
+                @if (editingId() === d.id) {
+                  <button class="primary-btn small" [disabled]="saving()" (click)="saveEdit()">
+                    حفظ
+                  </button>
+                  <button class="text-btn" (click)="cancelEdit()">إلغاء</button>
+                } @else {
+                  <button class="icon-btn" (click)="startEdit(d)" title="تعديل">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button class="icon-btn danger" (click)="startDelete(d)" title="حذف">
+                    <span class="material-icons">delete</span>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+</div>
+
+@if (deleteState(); as ds) {
+  <div class="modal-backdrop" (click)="cancelDelete()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <h2>تعذر حذف السائق</h2>
+      </header>
+      <div class="modal-body">
+        <p>
+          السائق <strong>{{ ds.driver.nameAr }}</strong> مُسنَد إلى
+          <strong>{{ ds.upcomingTripCount }}</strong>
+          رحلة قادمة. اختر سائقاً بديلاً لإعادة تعيين هذه الرحلات إليه ثم سيتم حذف السائق
+          الحالي.
+        </p>
+        @if (ds.sampleTripDates.length > 0) {
+          <p class="hint">
+            من تواريخ هذه الرحلات: {{ ds.sampleTripDates.join('، ') }}
+          </p>
+        }
+
+        <div class="field">
+          <label>السائق البديل</label>
+          <select
+            class="input"
+            [ngModel]="ds.replacementId"
+            (ngModelChange)="setReplacement($event)"
+          >
+            <option value="">اختر سائقاً</option>
+            @for (c of replacementCandidates(); track c.id) {
+              <option [value]="c.id">{{ c.nameAr }}</option>
+            }
+          </select>
+        </div>
+
+        @if (ds.error; as err) {
+          <div class="error-text">{{ err }}</div>
+        }
+      </div>
+      <footer class="modal-actions">
+        <button class="text-btn" (click)="cancelDelete()">إلغاء</button>
+        <button class="primary-btn" [disabled]="ds.submitting" (click)="confirmDelete()">
+          @if (ds.submitting) {
+            جارٍ الحذف...
+          } @else {
+            تأكيد الحذف
+          }
+        </button>
+      </footer>
+    </div>
+  </div>
+}
