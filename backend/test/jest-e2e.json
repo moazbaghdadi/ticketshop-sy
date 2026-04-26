@@ -1,9 +1,17 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
-  "rootDir": ".",
-  "testEnvironment": "node",
-  "testRegex": ".e2e-spec.ts$",
-  "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
-  }
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "rootDir": ".",
+    "testEnvironment": "node",
+    "testRegex": ".e2e-spec.ts$",
+    "transform": {
+        "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+        "^@ticketshop-sy/shared-models$": "<rootDir>/../../libs/shared-models/index.ts"
+    },
+    "globalSetup": "<rootDir>/setup/global-setup.ts",
+    "globalTeardown": "<rootDir>/setup/global-teardown.ts",
+    "testTimeout": 60000,
+    "maxWorkers": 1,
+    "forceExit": true
 }
